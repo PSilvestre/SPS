@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:background="#ffffff"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:paddingTop="20dp" >
+
+    <LinearLayout
+        android:id="@+id/layoutCell1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="#ffffff"
+        android:gravity="center"
+        android:orientation="horizontal" >
+
+    <TextView
+        android:id="@+id/textCell1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.5"
+        android:text="0/10"
+        android:textSize = "25sp"
+        android:gravity="center"/>
+
+    <Button
+        android:id="@+id/buttonCell1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.5"
+        android:text="Scan Cell 1" />
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/layoutCell2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="#ffffff"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/textCell2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="0/10"
+            android:textSize = "25sp"
+            android:gravity="center"/>
+
+        <Button
+            android:id="@+id/buttonCell2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="Scan Cell 2" />
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/layoutCell3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="#ffffff"
+        android:gravity="center"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:id="@+id/textCell3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="0/10"
+            android:textSize = "25sp"
+            android:gravity="center"/>
+
+        <Button
+            android:id="@+id/buttonCell3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="Scan Cell 3" />
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/layoutCell4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="#ffffff"
+        android:gravity="center"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:id="@+id/textCell4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="0/10"
+            android:textSize = "25sp"
+            android:gravity="center"/>
+
+        <Button
+            android:id="@+id/buttonCell4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="Scan Cell 4" />
+
+    </LinearLayout>
+
+</LinearLayout>

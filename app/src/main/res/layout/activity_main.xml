@@ -52,6 +52,14 @@
             android:background="#ffffff"
             android:gravity="center"
             android:orientation="vertical" >
+
+            <Button
+                android:id="@+id/button2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.33"
+                android:text="CollectData" />
+
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

@@ -3,6 +3,7 @@ package com.example.sps;
 import java.util.List;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
@@ -12,6 +13,8 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
+
+import com.example.sps.data_collection.DataCollectionActivity;
 
 public class MainActivity extends Activity implements OnClickListener {
 
@@ -27,6 +30,7 @@ public class MainActivity extends Activity implements OnClickListener {
      * The button.
      */
     private Button buttonRssi;
+    private Button button2;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -36,8 +40,18 @@ public class MainActivity extends Activity implements OnClickListener {
         // Create items.
         textRssi = (TextView) findViewById(R.id.textRSSI);
         buttonRssi = (Button) findViewById(R.id.buttonRSSI);
+        button2 = (Button) findViewById(R.id.button2);
+
         // Set listener for the button.
         buttonRssi.setOnClickListener(this);
+
+        button2.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent((Activity) view.getContext(), DataCollectionActivity.class);
+                startActivity(i);
+            }
+        });
 
         BroadcastReceiver br = new ScanBroadcastReceiver(this);
         IntentFilter filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
@@ -80,4 +94,6 @@ public class MainActivity extends Activity implements OnClickListener {
                     + scanResult.level + "dBm");
         }
     }
+
+
 }
