@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.Sensor;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
@@ -50,7 +49,7 @@ public class LocateMeActivity extends AppCompatActivity  {
 
     private AccelerometerListener accelerometerListener;
 
-    private IntentFilter wifiIntenFilter;
+    private IntentFilter wifiIntentFilter;
     private BroadcastReceiver wifiBroadcastReceiver;
 
     private WifiManager wifiManager;
@@ -76,8 +75,8 @@ public class LocateMeActivity extends AppCompatActivity  {
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
         wifiBroadcastReceiver = new simpleScanBroadcastReceiver();
-        wifiIntenFilter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-        this.registerReceiver(wifiBroadcastReceiver, wifiIntenFilter);
+        wifiIntentFilter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        this.registerReceiver(wifiBroadcastReceiver, wifiIntentFilter);
 
         initialBeliefButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -159,7 +158,7 @@ public class LocateMeActivity extends AppCompatActivity  {
     @Override
     public void onResume(){
         super.onResume();
-        this.registerReceiver(wifiBroadcastReceiver, wifiIntenFilter);
+        this.registerReceiver(wifiBroadcastReceiver, wifiIntentFilter);
     }
 
     protected void setInitialBelief(){

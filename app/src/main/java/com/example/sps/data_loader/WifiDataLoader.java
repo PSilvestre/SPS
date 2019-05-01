@@ -23,6 +23,7 @@ public class WifiDataLoader {
 
     public List<List<WifiSample>> load() throws IOException {
         for(int i = 0; i < NUM_CELLS; i++){
+
             List<WifiSample> samplesOfThisCell = new LinkedList<>();
 
             WifiSample sample = new WifiSample();
@@ -30,8 +31,6 @@ public class WifiDataLoader {
 
             BufferedReader reader = new BufferedReader(new FileReader(Environment.getExternalStorageDirectory() + "/sps/readings" + i));
             String line = reader.readLine();
-
-
 
             while(line != null){
                 if(line.equals("")){
