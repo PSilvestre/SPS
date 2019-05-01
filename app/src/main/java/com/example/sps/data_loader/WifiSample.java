@@ -5,21 +5,21 @@ import java.util.List;
 
 public class WifiSample {
 
-    private List<WifiReading> sample;
+    private List<WifiReading> readings;
 
     public WifiSample() {
-        sample = new LinkedList<>();
+        readings = new LinkedList<>();
     }
 
     public WifiSample(List<WifiReading> sample) {
-        this.sample = sample;
+        this.readings = sample;
     }
 
-    public List<WifiReading> getSample() {
-        return sample;
+    public List<WifiReading> getReadings() {
+        return readings;
     }
 
-    public void setSample(List<WifiReading> sample) {
-        this.sample = sample;
+    public void setReadings(List<WifiReading> readings) {
+        this.readings = readings;
     }
 }
