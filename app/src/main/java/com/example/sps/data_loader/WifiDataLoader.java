@@ -3,8 +3,6 @@ package com.example.sps.data_loader;
 import android.os.Environment;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +25,7 @@ public class WifiDataLoader {
             List<WifiSample> samplesOfThisCell = new LinkedList<>();
 
             WifiSample sample = new WifiSample();
-            List<WifiReading> readings = sample.getSample();
+            List<WifiReading> readings = sample.getReadings();
 
             BufferedReader reader = new BufferedReader(new FileReader(Environment.getExternalStorageDirectory() + "/sps/readings" + i));
             String line = reader.readLine();
@@ -36,7 +34,7 @@ public class WifiDataLoader {
                 if(line.equals("")){
                     samplesOfThisCell.add(sample);
                     sample = new WifiSample();
-                    readings = sample.getSample();
+                    readings = sample.getReadings();
                 }else {
                     readings.add(WifiReading.fromString(line));
                 }
