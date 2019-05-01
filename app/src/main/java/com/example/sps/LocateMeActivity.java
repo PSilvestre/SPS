@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.Sensor;
-import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
@@ -15,13 +14,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ListAdapter;
 import android.widget.TextView;
 
 import com.example.sps.activity_recognizer.ActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.activity_recognizer.SubjectActivity;
-import com.example.sps.data_collection.DataCollectOnClickListener;
 import com.example.sps.data_collection.DataCollectionActivity;
 import com.example.sps.localization_method.LocalizationMethod;
 
@@ -29,7 +26,11 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class LocateMeActivity extends AppCompatActivity implements SensorEventListener {
+public class LocateMeActivity extends AppCompatActivity  {
+    public static final int NUM_CELLS = 4;
+
+    private static final int NUM_ACC_READINGS = 20;
+
 
     private Button initialBeliefButton;
     private Button locateMeButton;
@@ -43,10 +44,18 @@ public class LocateMeActivity extends AppCompatActivity implements SensorEventLi
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
-    private List<FloatTriplet> accSensor;
 
-    List<Float> cellProbabilities;
-    int numCells;
+    private List<FloatTriplet> accelorometerData;
+    private List<ScanResult> scanData;
+
+    private AccelerometerListener accelerometerListener;
+
+    private IntentFilter wifiIntenFilter;
+    private BroadcastReceiver wifiBroadcastReceiver;
+
+    private WifiManager wifiManager;
+
+    private List<Float> cellProbabilities;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +69,15 @@ public class LocateMeActivity extends AppCompatActivity implements SensorEventLi
         cellText = findViewById(R.id.cell_guess);
         actText = findViewById(R.id.act_guess);
 
-        numCells = 4;
+
+        accelorometerData = new LinkedList<>();
+        accelerometerListener = new AccelerometerListener(accelorometerData);
+
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+
+        wifiBroadcastReceiver = new simpleScanBroadcastReceiver();
+        wifiIntenFilter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        this.registerReceiver(wifiBroadcastReceiver, wifiIntenFilter);
 
         initialBeliefButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -72,9 +89,7 @@ public class LocateMeActivity extends AppCompatActivity implements SensorEventLi
         locateMeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                List<ScanResult> scanResults = null;
-                int cell_guess = localizationMethod.computeLocation(scanResults);
-                accSensor = new LinkedList<>();
+                accelorometerData = new LinkedList<>();
 
                 // Set the sensor manager
                 sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -82,15 +97,40 @@ public class LocateMeActivity extends AppCompatActivity implements SensorEventLi
                 // if the default accelerometer exists
                 if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
                     // set accelerometer
-                    accelerometer = sensorManager
-                            .getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+                    accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
                     // register 'this' as a listener that updates values. Each time a sensor value changes,
                     // the method 'onSensorChanged()' is called.
-                    sensorManager.registerListener((SensorEventListener) view.getContext(), accelerometer,
+                    sensorManager.registerListener(accelerometerListener, accelerometer,
                             SensorManager.SENSOR_DELAY_NORMAL);
                 } else {
                     // No accelerometer!
                 }
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        while(scanData.size() == 0 || scanData.equals(null) || accelorometerData.size() < NUM_ACC_READINGS){ //spin while data not ready
+                            try {
+                                Thread.sleep(50);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        //when finished, compute location and activity and post to user. unregister accelorometer listener
+
+                        sensorManager.unregisterListener(accelerometerListener);
+
+                        accelorometerData = accelorometerData.subList(0, NUM_ACC_READINGS);
+
+                        SubjectActivity activity = activityRecognizer.recognizeActivity(accelorometerData);
+                        int cell = localizationMethod.computeLocation(scanData);
+
+                        setLocalizationText(activity, cell);
+
+
+                    }
+                }).start();
+
 
             }
         });
@@ -100,34 +140,40 @@ public class LocateMeActivity extends AppCompatActivity implements SensorEventLi
             public void onClick(View view) {
                 Intent intent = new Intent((Activity) view.getContext(), DataCollectionActivity.class);
                 startActivity(intent);
-
-
             }
         });
 
+    }
 
-
+    private void setLocalizationText(SubjectActivity activity, int cell) {
+        this.actText.setText(R.string.act_guess_s + activity.name());
+        this.cellText.setText(R.string.cell_guess_s + cell);
     }
 
     @Override
-    public void onSensorChanged(SensorEvent event) {
-        // get the the x,y,z values of the accelerometer
-        accSensor.add(new FloatTriplet(event.values[0], event.values[1], event.values[2]));
-        if ( accSensor.size() == 10 ) {
-            SubjectActivity activity = activityRecognizer.recognizeActivity(accSensor);
-            sensorManager.unregisterListener(this);
-        }
+    public void onPause(){
+        super.onPause();
+        this.unregisterReceiver(wifiBroadcastReceiver);
     }
 
     @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-        //Do everything!!!
+    public void onResume(){
+        super.onResume();
+        this.registerReceiver(wifiBroadcastReceiver, wifiIntenFilter);
     }
 
     protected void setInitialBelief(){
-        cellProbabilities = new ArrayList<>(numCells);
-        for(int i = 0; i < numCells; i++)
-            cellProbabilities.add(1.0f/numCells);
+        cellProbabilities = new ArrayList<>(NUM_CELLS);
+        for(int i = 0; i < NUM_CELLS; i++)
+            cellProbabilities.add(1.0f/NUM_CELLS);
+    }
+
+    public class simpleScanBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            scanData = wifiManager.getScanResults();
+        }
     }
 
 

@@ -67,5 +67,13 @@ public class DataCollectionActivity extends AppCompatActivity {
 
 
     }
+    @Override
+    public void onPause(){
+        super.onPause();
+    }
 
+    @Override
+    public void onResume(){
+        super.onResume();
+    }
 }
