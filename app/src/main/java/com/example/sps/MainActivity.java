@@ -16,6 +16,12 @@ import android.widget.TextView;
 
 import com.example.sps.data_collection.DataCollectionActivity;
 
+/*TO DO: - implement x ScansPerCell button to run all scans in one;
+         - implement just one broadcast catcher (like my example) BUT have it written to diff files;
+         - (if passing to the other file is needed, don't forget to carry the things that prevent crashing like pauses and resumes
+
+ */
+
 public class MainActivity extends Activity implements OnClickListener {
 
     /**
