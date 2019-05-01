@@ -51,10 +51,7 @@ public class KnnLocalizationMethod implements LocalizationMethod {
 
         int cellWinner = countVotes(closest);
 
-
-
-
-        return cell;
+        return cellWinner;
     }
 
     private int countVotes(List<Distance> closest) {
