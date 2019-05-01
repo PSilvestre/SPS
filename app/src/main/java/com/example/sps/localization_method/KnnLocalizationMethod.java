@@ -3,10 +3,10 @@ package com.example.sps.localization_method;
 import android.net.wifi.ScanResult;
 
 import com.example.sps.data_loader.WifiDataLoader;
+import com.example.sps.data_loader.WifiReading;
 import com.example.sps.data_loader.WifiSample;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -75,7 +75,31 @@ public class KnnLocalizationMethod implements LocalizationMethod {
     }
 
     public int calculateDistance(List<ScanResult> scan, WifiSample sample){
-        return 0;
+
+        int differences = 0;
+
+        List<String> scannedBSSID = new LinkedList<>();
+        List<String> trainedBSSID = new LinkedList<>();
+
+        for(ScanResult result : scan) {
+            scannedBSSID.add(result.BSSID);
+        }
+
+        for(WifiReading reading : sample.getReadings()) {
+            trainedBSSID.add(reading.getBSSID());
+        }
+
+
+        for(String a : scannedBSSID)
+            if (! trainedBSSID.contains(a) )
+                differences ++;
+
+        for(String b : trainedBSSID)
+            if (! scannedBSSID.contains(b))
+                differences ++;
+
+
+        return differences;
     }
 
     public class Distance {
