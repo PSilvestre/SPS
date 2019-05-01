@@ -15,7 +15,7 @@
         android:layout_weight="1"
         android:background="#ffffff"
         android:gravity="center"
-        android:orientation="horizontal" >
+        android:orientation="vertical" >
 
     <TextView
         android:id="@+id/textCell1"
@@ -23,15 +23,29 @@
         android:layout_height="wrap_content"
         android:layout_weight="0.5"
         android:text="0/10"
-        android:textSize = "25sp"
+        android:textSize = "12sp"
         android:gravity="center"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="#ffffff"
+            android:gravity="center"
+            android:orientation="horizontal" >
 
-    <Button
-        android:id="@+id/buttonCell1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="0.5"
-        android:text="Scan Cell 1" />
+        <Button
+            android:id="@+id/buttonCell1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.25"
+            android:text="Scan" />
+        <Button
+            android:id="@+id/buttonCell1x10"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.25"
+            android:text="Scan x10" />
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -43,7 +57,7 @@
         android:layout_weight="1"
         android:background="#ffffff"
         android:gravity="center"
-        android:orientation="horizontal">
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/textCell2"
@@ -51,16 +65,29 @@
             android:layout_height="wrap_content"
             android:layout_weight="0.5"
             android:text="0/10"
-            android:textSize = "25sp"
+            android:textSize = "12sp"
             android:gravity="center"/>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="#ffffff"
+            android:gravity="center"
+            android:orientation="horizontal" >
         <Button
             android:id="@+id/buttonCell2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:text="Scan Cell 2" />
-
+            android:layout_weight="0.25"
+            android:text="Scan" />
+        <Button
+            android:id="@+id/buttonCell2x10"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.25"
+            android:text="Scan x10" />
+        </LinearLayout>
     </LinearLayout>
 
 
@@ -71,7 +98,7 @@
         android:layout_weight="1"
         android:background="#ffffff"
         android:gravity="center"
-        android:orientation="horizontal" >
+        android:orientation="vertical" >
 
         <TextView
             android:id="@+id/textCell3"
@@ -79,16 +106,29 @@
             android:layout_height="wrap_content"
             android:layout_weight="0.5"
             android:text="0/10"
-            android:textSize = "25sp"
+            android:textSize = "12sp"
             android:gravity="center"/>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="#ffffff"
+            android:gravity="center"
+            android:orientation="horizontal">
         <Button
             android:id="@+id/buttonCell3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:text="Scan Cell 3" />
-
+            android:layout_weight="0.25"
+            android:text="Scan" />
+        <Button
+            android:id="@+id/buttonCell3x10"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.25"
+            android:text="Scan x10" />
+        </LinearLayout>
     </LinearLayout>
 
 
@@ -99,7 +139,7 @@
         android:layout_weight="1"
         android:background="#ffffff"
         android:gravity="center"
-        android:orientation="horizontal" >
+        android:orientation="vertical" >
 
         <TextView
             android:id="@+id/textCell4"
@@ -107,15 +147,29 @@
             android:layout_height="wrap_content"
             android:layout_weight="0.5"
             android:text="0/10"
-            android:textSize = "25sp"
+            android:textSize = "12sp"
             android:gravity="center"/>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="#ffffff"
+            android:gravity="center"
+            android:orientation="horizontal" >
         <Button
             android:id="@+id/buttonCell4"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:text="Scan Cell 4" />
+            android:layout_weight="0.25"
+            android:text="Scan" />
+        <Button
+            android:id="@+id/buttonCell4x10"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.25"
+            android:text="Scan x10" />
+        </LinearLayout>
 
     </LinearLayout>
 

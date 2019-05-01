@@ -3,11 +3,8 @@ package com.example.sps.data_collection;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -25,6 +22,8 @@ public class DataCollectionActivity extends AppCompatActivity {
     private TextView[] txts;
 
     private  Integer[] counters = {0, 0, 0, 0};
+
+    public static Integer currentScanI;
 
 
     @Override
@@ -51,7 +50,7 @@ public class DataCollectionActivity extends AppCompatActivity {
 
 
         for(int i = 0; i < 4; i++) {
-            btns[i].setOnClickListener(new DataCollectOnClickListener("/sps/readings" + i, txts[i], wifiManager, this, counters[i]));
+            btns[i].setOnClickListener(new DataCollectOnClickListener("readings", txts[i], wifiManager, this, counters[i], i));
         }
 
 

@@ -32,6 +32,8 @@ public class MainActivity extends Activity implements OnClickListener {
     private Button buttonRssi;
     private Button button2;
 
+    private BroadcastReceiver receiver;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,9 +55,9 @@ public class MainActivity extends Activity implements OnClickListener {
             }
         });
 
-        BroadcastReceiver br = new ScanBroadcastReceiver(this);
+        receiver = new ScanBroadcastReceiver(this);
         IntentFilter filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-        this.registerReceiver(br, filter);
+        this.registerReceiver(receiver, filter);
     }
 
     // onResume() registers the accelerometer for listening the events
@@ -66,6 +68,7 @@ public class MainActivity extends Activity implements OnClickListener {
     // onPause() unregisters the accelerometer for stop listening the events
     protected void onPause() {
         super.onPause();
+        this.unregisterReceiver(receiver);
     }
 
     @Override
