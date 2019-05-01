@@ -18,6 +18,7 @@ public class DataCollectionActivity extends AppCompatActivity {
     private WifiManager wifiManager;
 
     private Button[] btns;
+    private Button[] btnsx10;
 
     private TextView[] txts;
 
@@ -36,12 +37,19 @@ public class DataCollectionActivity extends AppCompatActivity {
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
         btns = new Button[4];
+        btnsx10 = new Button[4];
+
         txts = new TextView[4];
 
         btns[0] = (Button) findViewById(R.id.buttonCell1);
         btns[1] = (Button) findViewById(R.id.buttonCell2);
         btns[2] = (Button) findViewById(R.id.buttonCell3);
         btns[3] = (Button) findViewById(R.id.buttonCell4);
+
+        btnsx10[0] = (Button) findViewById(R.id.buttonCell1x10);
+        btnsx10[1] = (Button) findViewById(R.id.buttonCell2x10);
+        btnsx10[2] = (Button) findViewById(R.id.buttonCell3x10);
+        btnsx10[3] = (Button) findViewById(R.id.buttonCell4x10);
 
         txts[0] = (TextView) findViewById(R.id.textCell1);
         txts[1] = (TextView) findViewById(R.id.textCell2);
@@ -51,6 +59,10 @@ public class DataCollectionActivity extends AppCompatActivity {
 
         for(int i = 0; i < 4; i++) {
             btns[i].setOnClickListener(new DataCollectOnClickListener("readings", txts[i], wifiManager, this, counters[i], i));
+        }
+
+        for(int i = 0; i < 4; i++) {
+            btnsx10[i].setOnClickListener(new DataCollectOnClickListener("readings", txts[i], wifiManager, this, counters[i], i));
         }
 
 

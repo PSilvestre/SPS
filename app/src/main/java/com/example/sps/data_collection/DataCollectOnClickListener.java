@@ -60,26 +60,27 @@ public class DataCollectOnClickListener implements View.OnClickListener {
                 List<ScanResult> results = manager.getScanResults();
                 if (scanResult == true) {
                     txt.setText("Scan Ok " + ++counter + "/10");
+                    try {
+                        File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps");
+                        if (!dir.exists())
+                            dir.mkdir();
+
+
+                        FileWriter fw = new FileWriter(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps/" + path, true);
+
+                        for (ScanResult scanResult : results) {
+                            fw.append(scanResult.BSSID + ", " + scanResult.level + "\n");
+                        }
+                        fw.append("\n");
+                        fw.flush();
+                        fw.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 } else {
                     txt.setText("Scan Failed " + counter + "/10");
                 }
-                try {
-                    File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps");
-                    if (!dir.exists())
-                        dir.mkdir();
 
-
-                    FileWriter fw = new FileWriter(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps/" + path, true);
-
-                    for (ScanResult scanResult : results) {
-                        fw.append(scanResult.BSSID + ", " + scanResult.level + "\n");
-                    }
-                    fw.append("\n");
-                    fw.flush();
-                    fw.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
             }
         }
     }
