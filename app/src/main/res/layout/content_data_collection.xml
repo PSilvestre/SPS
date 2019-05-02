@@ -18,34 +18,14 @@
         android:orientation="vertical" >
 
     <TextView
-        android:id="@+id/textCell1"
+        android:id="@+id/textStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="0.5"
         android:text="0/10"
-        android:textSize = "12sp"
+        android:textSize = "32sp"
         android:gravity="center"/>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="#ffffff"
-            android:gravity="center"
-            android:orientation="horizontal" >
 
-        <Button
-            android:id="@+id/buttonCell1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"
-            android:text="Scan" />
-        <Button
-            android:id="@+id/buttonCell1x10"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"
-            android:text="Scan x10" />
-        </LinearLayout>
 
     </LinearLayout>
 
@@ -60,34 +40,13 @@
         android:orientation="vertical">
 
         <TextView
-            android:id="@+id/textCell2"
+            android:id="@+id/textScans"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="0.5"
             android:text="0/10"
-            android:textSize = "12sp"
+            android:textSize = "32sp"
             android:gravity="center"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="#ffffff"
-            android:gravity="center"
-            android:orientation="horizontal" >
-        <Button
-            android:id="@+id/buttonCell2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"
-            android:text="Scan" />
-        <Button
-            android:id="@+id/buttonCell2x10"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"
-            android:text="Scan x10" />
-        </LinearLayout>
     </LinearLayout>
 
 
@@ -100,35 +59,16 @@
         android:gravity="center"
         android:orientation="vertical" >
 
-        <TextView
-            android:id="@+id/textCell3"
+        <EditText
+            android:id="@+id/textFile"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="0.5"
-            android:text="0/10"
-            android:textSize = "12sp"
-            android:gravity="center"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="#ffffff"
+            android:textSize = "20sp"
             android:gravity="center"
-            android:orientation="horizontal">
-        <Button
-            android:id="@+id/buttonCell3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"
-            android:text="Scan" />
-        <Button
-            android:id="@+id/buttonCell3x10"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"
-            android:text="Scan x10" />
-        </LinearLayout>
+            android:inputType="text"
+            android:text="default.txt"/>
+
     </LinearLayout>
 
 
@@ -141,15 +81,6 @@
         android:gravity="center"
         android:orientation="vertical" >
 
-        <TextView
-            android:id="@+id/textCell4"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:text="0/10"
-            android:textSize = "12sp"
-            android:gravity="center"/>
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -158,13 +89,13 @@
             android:gravity="center"
             android:orientation="horizontal" >
         <Button
-            android:id="@+id/buttonCell4"
+            android:id="@+id/buttonScan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="0.25"
             android:text="Scan" />
         <Button
-            android:id="@+id/buttonCell4x10"
+            android:id="@+id/buttonScanx10"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="0.25"

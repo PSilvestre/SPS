@@ -93,6 +93,7 @@ public class LocateMeActivity extends AppCompatActivity  {
                 // Set the sensor manager
                 sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
+                wifiManager.startScan();
                 // if the default accelerometer exists
                 if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
                     // set accelerometer
@@ -108,7 +109,7 @@ public class LocateMeActivity extends AppCompatActivity  {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        while(scanData.size() == 0 || scanData.equals(null) || accelorometerData.size() < NUM_ACC_READINGS){ //spin while data not ready
+                        while( scanData == null || scanData.size() == 0  || accelorometerData.size() < NUM_ACC_READINGS){ //spin while data not ready
                             try {
                                 Thread.sleep(50);
                             } catch (InterruptedException e) {
