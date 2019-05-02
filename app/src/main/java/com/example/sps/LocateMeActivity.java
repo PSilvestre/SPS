@@ -17,8 +17,10 @@ import android.widget.TextView;
 
 import com.example.sps.activity_recognizer.ActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
+import com.example.sps.activity_recognizer.StdDevActivityRecognizer;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
+import com.example.sps.localization_method.KnnLocalizationMethod;
 import com.example.sps.localization_method.LocalizationMethod;
 
 import java.util.ArrayList;
@@ -68,6 +70,8 @@ public class LocateMeActivity extends AppCompatActivity  {
         cellText = findViewById(R.id.cell_guess);
         actText = findViewById(R.id.act_guess);
 
+        activityRecognizer = new StdDevActivityRecognizer();
+        localizationMethod = new KnnLocalizationMethod();
 
         accelorometerData = new LinkedList<>();
         accelerometerListener = new AccelerometerListener(accelorometerData);
@@ -88,7 +92,7 @@ public class LocateMeActivity extends AppCompatActivity  {
         locateMeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                accelorometerData = new LinkedList<>();
+                accelorometerData.removeAll(accelorometerData);
 
                 // Set the sensor manager
                 sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -122,10 +126,20 @@ public class LocateMeActivity extends AppCompatActivity  {
 
                         accelorometerData = accelorometerData.subList(0, NUM_ACC_READINGS);
 
-                        SubjectActivity activity = activityRecognizer.recognizeActivity(accelorometerData);
-                        int cell = localizationMethod.computeLocation(scanData);
+                        final SubjectActivity activity = activityRecognizer.recognizeActivity(accelorometerData);
+                        final int cell = localizationMethod.computeLocation(scanData);
 
-                        setLocalizationText(activity, cell);
+                        runOnUiThread(new Runnable() {
+
+                            @Override
+                            public void run() {
+
+                                // Stuff that updates the UI
+                                setLocalizationText(activity, cell);
+
+
+                            }
+                        });
 
 
                     }
@@ -146,8 +160,8 @@ public class LocateMeActivity extends AppCompatActivity  {
     }
 
     private void setLocalizationText(SubjectActivity activity, int cell) {
-        this.actText.setText(R.string.act_guess_s + activity.name());
-        this.cellText.setText(R.string.cell_guess_s + cell);
+        this.actText.setText("You are " + activity.toString());
+        this.cellText.setText("You are at cell " + cell);
     }
 
     @Override

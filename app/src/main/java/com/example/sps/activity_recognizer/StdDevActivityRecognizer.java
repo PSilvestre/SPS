@@ -12,10 +12,10 @@ public class StdDevActivityRecognizer implements ActivityRecognizer {
 
 
         int largestComponentIndex = 0;
-        for(int i = 0; i < 3; i++)
-            if(means[i] > means[largestComponentIndex])
+        for(int i = 0; i < 3; i++) {
+            if (means[i] > means[largestComponentIndex])
                 largestComponentIndex = i;
-
+        }
         if(stddevs[largestComponentIndex] > 3)
             return SubjectActivity.RUNNING;
         else if(stddevs[largestComponentIndex] > 1)
@@ -43,9 +43,9 @@ public class StdDevActivityRecognizer implements ActivityRecognizer {
         float[] stddevs = new float[3];
 
         for (FloatTriplet point : sensorData) {
-            stddevs[0] += Math.pow(point.getX() - stddevs[0], 2);
-            stddevs[1] += Math.pow(point.getY() - stddevs[1], 2);
-            stddevs[2] += Math.pow(point.getZ() - stddevs[2], 2);
+            stddevs[0] += Math.pow(point.getX() - means[0], 2);
+            stddevs[1] += Math.pow(point.getY() - means[1], 2);
+            stddevs[2] += Math.pow(point.getZ() - means[2], 2);
         }
 
         for (int i = 0; i < 3; i++) {
