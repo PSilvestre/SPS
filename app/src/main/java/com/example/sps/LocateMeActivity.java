@@ -26,11 +26,12 @@ import com.example.sps.localization_method.LocalizationMethod;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class LocateMeActivity extends AppCompatActivity  {
     public static final int NUM_CELLS = 4;
 
-    private static final int NUM_ACC_READINGS = 20;
+    public static final int NUM_ACC_READINGS = 20;
 
 
     private Button initialBeliefButton;
@@ -39,6 +40,7 @@ public class LocateMeActivity extends AppCompatActivity  {
 
     private TextView cellText;
     private TextView actText;
+    private TextView miscText;
 
     private ActivityRecognizer activityRecognizer;
     private LocalizationMethod localizationMethod;
@@ -46,7 +48,8 @@ public class LocateMeActivity extends AppCompatActivity  {
     private SensorManager sensorManager;
     private Sensor accelerometer;
 
-    private List<FloatTriplet> accelorometerData;
+    private CopyOnWriteArrayList<FloatTriplet> accelorometerData;
+
     private List<ScanResult> scanData;
 
     private AccelerometerListener accelerometerListener;
@@ -56,7 +59,7 @@ public class LocateMeActivity extends AppCompatActivity  {
 
     private WifiManager wifiManager;
 
-    private List<Float> cellProbabilities;
+    private float[] cellProbabilities;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,11 +72,12 @@ public class LocateMeActivity extends AppCompatActivity  {
 
         cellText = findViewById(R.id.cell_guess);
         actText = findViewById(R.id.act_guess);
+        miscText = findViewById(R.id.misc_info);
 
         activityRecognizer = new StdDevActivityRecognizer();
         localizationMethod = new KnnLocalizationMethod();
 
-        accelorometerData = new LinkedList<>();
+        accelorometerData = new CopyOnWriteArrayList<>();
         accelerometerListener = new AccelerometerListener(accelorometerData);
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -92,12 +96,18 @@ public class LocateMeActivity extends AppCompatActivity  {
         locateMeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                cellText.setText("Loading...");
+                actText.setText("");
                 accelorometerData.removeAll(accelorometerData);
+                if (scanData != null)
+                    scanData.removeAll(scanData);
 
                 // Set the sensor manager
                 sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
+                //Start wifi scan
                 wifiManager.startScan();
+
                 // if the default accelerometer exists
                 if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
                     // set accelerometer
@@ -107,12 +117,15 @@ public class LocateMeActivity extends AppCompatActivity  {
                     sensorManager.registerListener(accelerometerListener, accelerometer,
                             SensorManager.SENSOR_DELAY_NORMAL);
                 } else {
-                    // No accelerometer!
+                    System.out.println("No accelarometer\n");
                 }
 
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
+
+
+
                         while( scanData == null || scanData.size() == 0  || accelorometerData.size() < NUM_ACC_READINGS){ //spin while data not ready
                             try {
                                 Thread.sleep(50);
@@ -124,24 +137,23 @@ public class LocateMeActivity extends AppCompatActivity  {
 
                         sensorManager.unregisterListener(accelerometerListener);
 
-                        accelorometerData = accelorometerData.subList(0, NUM_ACC_READINGS);
+
 
                         final SubjectActivity activity = activityRecognizer.recognizeActivity(accelorometerData);
-                        final int cell = localizationMethod.computeLocation(scanData);
+                        cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities);
 
+                        final int cell = getIndexOfLargest(cellProbabilities) + 1;
+
+                        final float confidence = cellProbabilities[cell-1];
                         runOnUiThread(new Runnable() {
 
                             @Override
                             public void run() {
 
                                 // Stuff that updates the UI
-                                setLocalizationText(activity, cell);
-
-
+                                setLocalizationText(activity, cell, confidence);
                             }
                         });
-
-
                     }
                 }).start();
 
@@ -159,9 +171,25 @@ public class LocateMeActivity extends AppCompatActivity  {
 
     }
 
-    private void setLocalizationText(SubjectActivity activity, int cell) {
+    public int getIndexOfLargest( float[] array ) {
+        if ( array == null || array.length == 0 )
+            return -1;
+
+        int largest = 0;
+        for ( int i = 1; i < array.length; i++ ) {
+            if ( array[i] > array[largest] ) largest = i;
+        }
+        return largest;
+    }
+
+
+
+
+    private void setLocalizationText(SubjectActivity activity, int cell, float confidence) {
         this.actText.setText("You are " + activity.toString());
-        this.cellText.setText("You are at cell " + cell);
+        this.cellText.setText("You are at cell " + cell + " with confidence " + Math.round((confidence*100)*100)/100 + "%");
+        if(this.localizationMethod instanceof KnnLocalizationMethod)
+            miscText.setText("Number of Neighbours: " + ((KnnLocalizationMethod) localizationMethod).getNumNeighbours());
     }
 
     @Override
@@ -177,9 +205,9 @@ public class LocateMeActivity extends AppCompatActivity  {
     }
 
     protected void setInitialBelief(){
-        cellProbabilities = new ArrayList<>(NUM_CELLS);
+        cellProbabilities = new float[NUM_CELLS];
         for(int i = 0; i < NUM_CELLS; i++)
-            cellProbabilities.add(1.0f/NUM_CELLS);
+            cellProbabilities[i] = 1.0f/NUM_CELLS;
     }
 
     public class simpleScanBroadcastReceiver extends BroadcastReceiver {

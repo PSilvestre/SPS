@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface LocalizationMethod {
 
-    int computeLocation(List<ScanResult> scan);
+    float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities);
 
 }

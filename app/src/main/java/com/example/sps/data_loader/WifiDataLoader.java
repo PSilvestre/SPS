@@ -27,7 +27,7 @@ public class WifiDataLoader {
             WifiSample sample = new WifiSample();
             List<WifiReading> readings = sample.getReadings();
 
-            BufferedReader reader = new BufferedReader(new FileReader(Environment.getExternalStorageDirectory() + "/sps/readings" + i));
+            BufferedReader reader = new BufferedReader(new FileReader(Environment.getExternalStorageDirectory() + "/sps/readings" + (i + 1) + ".txt"));
             String line = reader.readLine();
 
             while(line != null){

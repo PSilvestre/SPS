@@ -22,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="0.5"
-        android:text="0/10"
+        android:text="Reading Status"
         android:textSize = "32sp"
         android:gravity="center"/>
 
@@ -44,7 +44,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="0.5"
-            android:text="0/10"
+            android:text="Number of scans"
             android:textSize = "32sp"
             android:gravity="center"/>
     </LinearLayout>

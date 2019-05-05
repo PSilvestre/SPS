@@ -15,13 +15,18 @@ import java.util.List;
 import static com.example.sps.LocateMeActivity.NUM_CELLS;
 
 public class KnnLocalizationMethod implements LocalizationMethod {
-    private static final int NUM_NEIGHBOURS = 10;
+    private static int NUM_NEIGHBOURS;
     private List<List<WifiSample>> data;
 
     public KnnLocalizationMethod(){
         WifiDataLoader loader = new WifiDataLoader();
         try {
             data = loader.load();
+            int numSamples = 0;
+            for(List<WifiSample> list : data) numSamples += list.size();
+            NUM_NEIGHBOURS = (int) Math.sqrt(numSamples);
+            if (NUM_NEIGHBOURS % 2 == 0)
+                NUM_NEIGHBOURS ++;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -29,8 +34,7 @@ public class KnnLocalizationMethod implements LocalizationMethod {
 
 
     @Override
-    public int computeLocation(List<ScanResult> scan) {
-        int cell = 0;
+    public float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities) {
 
         List<Distance> distances = new LinkedList<>();
         for(int i = 0; i < data.size(); i++){
@@ -49,26 +53,21 @@ public class KnnLocalizationMethod implements LocalizationMethod {
 
         List<Distance> closest = distances.subList(0, NUM_NEIGHBOURS);
 
-        int cellWinner = countVotes(closest);
 
-        return cellWinner;
+        return votesDistribution(closest);
     }
 
-    private int countVotes(List<Distance> closest) {
-        int[] votes = new int[NUM_CELLS];
+    // Returns the probability of being in each cell based on the cells of the closest k neighbours
+    private float[] votesDistribution(List<Distance> closest) {
+        float[] voteDistribution = new float[NUM_CELLS];
 
         for(Distance d : closest)
-            votes[d.getCell()]++;
+            voteDistribution[d.getCell()]++;
 
-        int highest_i = -1;
-        int highest_val = -1;
-        for(int i = 0; i < votes.length; i++){
-            if(votes[i] > highest_val){
-                highest_i = i;
-                highest_val = votes[i];
-            }
-        }
-        return highest_i;
+        for (int i = 0; i < NUM_CELLS; i++)
+            voteDistribution[i] = voteDistribution[i] / NUM_NEIGHBOURS;
+
+        return voteDistribution;
     }
 
     public int calculateDistance(List<ScanResult> scan, WifiSample sample){
@@ -99,6 +98,9 @@ public class KnnLocalizationMethod implements LocalizationMethod {
         return differences;
     }
 
+    public int getNumNeighbours() { return NUM_NEIGHBOURS; }
+
+
     public class Distance {
         private int cell;
         private int distance;
@@ -123,5 +125,6 @@ public class KnnLocalizationMethod implements LocalizationMethod {
         public void setDistance(int distance) {
             this.distance = distance;
         }
+
     }
 }

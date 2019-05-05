@@ -82,9 +82,9 @@ public class DataCollectionActivity extends AppCompatActivity {
             public void onClick(View view) {
                 scanResult = wifiManager.startScan();
                 if (scanResult)
-                    txtStatus.setText("Valid Scan");
+                    txtStatus.setText("Reading Status: Valid Scan");
                 else
-                    txtStatus.setText("NOT Valid Scan");
+                    txtStatus.setText("Reading Status: INVALID Scan");
             }
         });
 
@@ -97,9 +97,9 @@ public class DataCollectionActivity extends AppCompatActivity {
                         for (int i = 0; i < 10; i++) {
                             scanResult = wifiManager.startScan();
                             if (scanResult)
-                                txtStatus.setText("Valid Scan");
+                                txtStatus.setText("Reading Status: Valid Scan");
                             else
-                                txtStatus.setText("NOT Valid Scan");
+                                txtStatus.setText("Reading Status: INVALID Scan");
                             try {
                                 Thread.sleep(1000);
                             } catch (InterruptedException e) {
@@ -140,6 +140,6 @@ public class DataCollectionActivity extends AppCompatActivity {
     }
 
     public void incAndDisplayCounter(){
-        txtScans.setText("kkkkkkkkkkkk"+ counter.addAndGet(1));
+        txtScans.setText("Number of Scans: "+ counter.addAndGet(1));
     }
 }

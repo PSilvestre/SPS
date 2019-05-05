@@ -27,7 +27,7 @@ public class DataCollectionBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         List<ScanResult> scanResults = wifiManager.getScanResults();
-
+        //TODO iterate and remove SSIDs with "AP"
         if (src.getScanResults()) {
             try {
                 File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps");
