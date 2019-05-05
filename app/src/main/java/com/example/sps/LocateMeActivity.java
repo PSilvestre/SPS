@@ -12,9 +12,13 @@ import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.TextView;
 
+import com.example.sps.activity_recognizer.ActivityAlgorithm;
 import com.example.sps.activity_recognizer.ActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.activity_recognizer.StdDevActivityRecognizer;
@@ -22,12 +26,27 @@ import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
 import com.example.sps.localization_method.KnnLocalizationMethod;
 import com.example.sps.localization_method.LocalizationMethod;
+import com.example.sps.localization_method.LocalizationAlgorithm;
 import com.example.sps.localization_method.RSSIFingerprintKnnLocalizationMethod;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+//TODO: IMPLEMENT way of automatic finding statistics on measurements (auto measure save?)
+
+
+//TODO: implement graphs of the different activities like "climbing the stairs", running
+// walking with phone in pocket, walking with phone in the hand
+//TODO: use another sensors to sense direction, like magnetometer/compass
+
+//TODO (from old main):
+//   - implement x ScansPerCell button to run all scans in one;
+//   - implement just one broadcast catcher (like my example) BUT have it written to diff files;
+//   - (if passing to the other file is needed, don't forget to carry the things that prevent crashing like pauses and resumes
+
+
+
+
 
 public class LocateMeActivity extends AppCompatActivity  {
     public static final int NUM_CELLS = 4;
@@ -42,6 +61,9 @@ public class LocateMeActivity extends AppCompatActivity  {
     private TextView cellText;
     private TextView actText;
     private TextView miscText;
+
+    private Spinner locSpin;
+    private Spinner actSpin;
 
     private ActivityRecognizer activityRecognizer;
     private LocalizationMethod localizationMethod;
@@ -75,8 +97,48 @@ public class LocateMeActivity extends AppCompatActivity  {
         actText = findViewById(R.id.act_guess);
         miscText = findViewById(R.id.misc_info);
 
-        activityRecognizer = new StdDevActivityRecognizer();
-        localizationMethod = new RSSIFingerprintKnnLocalizationMethod();
+        locSpin = findViewById(R.id.localization_algorithm_spin);
+        actSpin = findViewById(R.id.activity_detection_spin);
+
+        ArrayAdapter<LocalizationAlgorithm> adapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, LocalizationAlgorithm.values());
+        adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+        locSpin.setAdapter(adapter);
+        locSpin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                localizationMethod = ((LocalizationAlgorithm)adapterView.getItemAtPosition(i)).getMethod();
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                localizationMethod = localizationMethod;
+            }
+        });
+
+
+        ArrayAdapter<ActivityAlgorithm> adapterAct = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, ActivityAlgorithm.values());
+        adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+        actSpin.setAdapter(adapterAct);
+        actSpin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                activityRecognizer = ((ActivityAlgorithm)adapterView.getItemAtPosition(i)).getMethod();
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                activityRecognizer = activityRecognizer; //do nothing
+            }
+        });
+
+
+
+        activityRecognizer = ActivityAlgorithm.NORMAL.getMethod();
+        localizationMethod = LocalizationAlgorithm.KNN_RSSI.getMethod();
 
         accelorometerData = new CopyOnWriteArrayList<>();
         accelerometerListener = new AccelerometerListener(accelorometerData);

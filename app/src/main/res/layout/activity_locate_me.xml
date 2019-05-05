@@ -32,25 +32,53 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#ffffff"
+        android:gravity="bottom|center_horizontal"
         android:orientation="horizontal">
+
         <Button
             android:id="@+id/btn_initial_belief"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/initial_belief_s"/>
+            android:text="@string/initial_belief_s" />
 
         <Button
             android:id="@+id/btn_locate_me"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/locate_me_s"/>
+            android:text="@string/locate_me_s" />
 
         <Button
             android:id="@+id/btn_collect_data"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/collect_data_s"/>
+            android:text="@string/collect_data_s" />
+
+
     </LinearLayout>
 
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#ffffff"
+        android:layout_margin="40dp"
+        android:gravity="bottom|center_horizontal"
+        android:orientation="vertical">
+
+        <Spinner
+            android:id="@+id/localization_algorithm_spin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+        </Spinner>
+
+        <Spinner
+            android:id="@+id/activity_detection_spin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+        </Spinner>
+
+    </LinearLayout>
 
 </LinearLayout>

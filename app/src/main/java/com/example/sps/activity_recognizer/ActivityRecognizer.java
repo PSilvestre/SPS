@@ -8,5 +8,4 @@ public interface ActivityRecognizer {
 
     SubjectActivity recognizeActivity(List<FloatTriplet> sensorData);
 
-
 }

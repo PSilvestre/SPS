@@ -24,14 +24,14 @@ public class RSSIFingerprintKnnLocalizationMethod extends KnnLocalizationMethod 
 
         for(String BSSID : scanRSSs.keySet()){
             if(sampleRSSs.containsKey(BSSID))
-                diff += Math.pow(scanRSSs.get(BSSID) - sampleRSSs.get(BSSID), 2);
+                diff += Math.abs(scanRSSs.get(BSSID) - sampleRSSs.get(BSSID));
             else
                 diff += MAX_DIST;
         }
 
         for(String BSSID : sampleRSSs.keySet()){
             if(scanRSSs.containsKey(BSSID))
-                diff += Math.pow(sampleRSSs.get(BSSID) - scanRSSs.get(BSSID), 2);
+                diff += Math.abs(sampleRSSs.get(BSSID) - scanRSSs.get(BSSID));
             else
                 diff += MAX_DIST;
         }
