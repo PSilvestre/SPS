@@ -14,7 +14,7 @@ import java.util.List;
 
 import static com.example.sps.LocateMeActivity.NUM_CELLS;
 
-public class KnnLocalizationMethod implements LocalizationMethod {
+public abstract class KnnLocalizationMethod implements LocalizationMethod {
     private static int NUM_NEIGHBOURS;
     private List<List<WifiSample>> data;
 
@@ -70,33 +70,7 @@ public class KnnLocalizationMethod implements LocalizationMethod {
         return voteDistribution;
     }
 
-    public int calculateDistance(List<ScanResult> scan, WifiSample sample){
-
-        int differences = 0;
-
-        List<String> scannedBSSID = new LinkedList<>();
-        List<String> trainedBSSID = new LinkedList<>();
-
-        for(ScanResult result : scan) {
-            scannedBSSID.add(result.BSSID);
-        }
-
-        for(WifiReading reading : sample.getReadings()) {
-            trainedBSSID.add(reading.getBSSID());
-        }
-
-
-        for(String a : scannedBSSID)
-            if (! trainedBSSID.contains(a) )
-                differences ++;
-
-        for(String b : trainedBSSID)
-            if (! scannedBSSID.contains(b))
-                differences ++;
-
-
-        return differences;
-    }
+    public abstract int calculateDistance(List<ScanResult> scan, WifiSample sample);
 
     public int getNumNeighbours() { return NUM_NEIGHBOURS; }
 

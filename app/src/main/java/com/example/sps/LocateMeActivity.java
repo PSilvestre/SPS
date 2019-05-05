@@ -22,6 +22,7 @@ import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
 import com.example.sps.localization_method.KnnLocalizationMethod;
 import com.example.sps.localization_method.LocalizationMethod;
+import com.example.sps.localization_method.RSSIFingerprintKnnLocalizationMethod;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -75,7 +76,7 @@ public class LocateMeActivity extends AppCompatActivity  {
         miscText = findViewById(R.id.misc_info);
 
         activityRecognizer = new StdDevActivityRecognizer();
-        localizationMethod = new KnnLocalizationMethod();
+        localizationMethod = new RSSIFingerprintKnnLocalizationMethod();
 
         accelorometerData = new CopyOnWriteArrayList<>();
         accelerometerListener = new AccelerometerListener(accelorometerData);
