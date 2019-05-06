@@ -8,4 +8,5 @@ public interface LocalizationMethod {
 
     float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities);
 
+    String getMiscInfo();
 }

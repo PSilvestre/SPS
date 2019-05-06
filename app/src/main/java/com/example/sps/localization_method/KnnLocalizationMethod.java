@@ -101,4 +101,7 @@ public abstract class KnnLocalizationMethod implements LocalizationMethod {
         }
 
     }
+
+    @Override
+    public String getMiscInfo() {return "Num. Neighbours: " + NUM_NEIGHBOURS;}
 }

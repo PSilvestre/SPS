@@ -5,30 +5,32 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.sqlite.SQLiteDatabase;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.example.sps.activity_recognizer.ActivityAlgorithm;
 import com.example.sps.activity_recognizer.ActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
-import com.example.sps.activity_recognizer.StdDevActivityRecognizer;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
 import com.example.sps.localization_method.KnnLocalizationMethod;
 import com.example.sps.localization_method.LocalizationMethod;
 import com.example.sps.localization_method.LocalizationAlgorithm;
-import com.example.sps.localization_method.RSSIFingerprintKnnLocalizationMethod;
 
+import java.io.FileWriter;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -45,13 +47,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 //   - (if passing to the other file is needed, don't forget to carry the things that prevent crashing like pauses and resumes
 
 
-
+//TODO: UI, duh
 
 
 public class LocateMeActivity extends AppCompatActivity  {
     public static final int NUM_CELLS = 4;
 
     public static final int NUM_ACC_READINGS = 20;
+
 
 
     private Button initialBeliefButton;
@@ -64,6 +67,8 @@ public class LocateMeActivity extends AppCompatActivity  {
 
     private Spinner locSpin;
     private Spinner actSpin;
+
+    private EditText currCellText;
 
     private ActivityRecognizer activityRecognizer;
     private LocalizationMethod localizationMethod;
@@ -82,12 +87,18 @@ public class LocateMeActivity extends AppCompatActivity  {
 
     private WifiManager wifiManager;
 
+    //private SQLiteDatabase database;
+
+
     private float[] cellProbabilities;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locate_me);
+
+        //database = openOrCreateDatabase("")
+
 
         initialBeliefButton = findViewById(R.id.btn_initial_belief);
         locateMeButton = findViewById(R.id.btn_locate_me);
@@ -96,6 +107,7 @@ public class LocateMeActivity extends AppCompatActivity  {
         cellText = findViewById(R.id.cell_guess);
         actText = findViewById(R.id.act_guess);
         miscText = findViewById(R.id.misc_info);
+        currCellText = findViewById(R.id.currCell);
 
         locSpin = findViewById(R.id.localization_algorithm_spin);
         actSpin = findViewById(R.id.activity_detection_spin);
@@ -188,8 +200,7 @@ public class LocateMeActivity extends AppCompatActivity  {
                     public void run() {
 
 
-
-                        while( scanData == null || scanData.size() == 0  || accelorometerData.size() < NUM_ACC_READINGS){ //spin while data not ready
+                        while (scanData == null || scanData.size() == 0 || accelorometerData.size() < NUM_ACC_READINGS) { //spin while data not ready
                             try {
                                 Thread.sleep(50);
                             } catch (InterruptedException e) {
@@ -201,22 +212,34 @@ public class LocateMeActivity extends AppCompatActivity  {
                         sensorManager.unregisterListener(accelerometerListener);
 
 
-
                         final SubjectActivity activity = activityRecognizer.recognizeActivity(accelorometerData);
                         cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities);
 
                         final int cell = getIndexOfLargest(cellProbabilities) + 1;
 
-                        final float confidence = cellProbabilities[cell-1];
-                        runOnUiThread(new Runnable() {
+                        if (! currCellText.getText().toString().equals("CurrentCell (for stats)")) {
+                            int txtCell = Integer.parseInt(currCellText.getText().toString());
 
-                            @Override
-                            public void run() {
+                            try {
+                                FileWriter fw = new FileWriter(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps/stats.txt", true);
+                                fw.append(txtCell + "," + cell + "," + Math.round(cellProbabilities[cell - 1] * 100) + "," + localizationMethod.getClass().getName() + "," + localizationMethod.getMiscInfo() + "\n");
+                                fw.flush();
+                                fw.close();
+                            } catch (Exception e) {
 
-                                // Stuff that updates the UI
-                                setLocalizationText(activity, cell, confidence);
                             }
-                        });
+
+                            final float confidence = cellProbabilities[cell - 1];
+                            runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+
+                                    // Stuff that updates the UI
+                                    setLocalizationText(activity, cell, confidence);
+                                }
+                            });
+                        }
                     }
                 }).start();
 

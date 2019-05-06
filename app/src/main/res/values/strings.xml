@@ -9,4 +9,6 @@
     <string name="initial_belief_s">Initial Belief</string>
     <string name="locate_me_s">Locate Me</string>
     <string name="collect_data_s">Collect Data</string>
+    <string name="currCellStats_default">CurrentCell (for stats)</string>
+
 </resources>

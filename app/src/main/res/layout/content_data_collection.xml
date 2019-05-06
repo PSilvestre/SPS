@@ -67,7 +67,7 @@
             android:textSize = "20sp"
             android:gravity="center"
             android:inputType="text"
-            android:text="default.txt"/>
+            android:text="readings1.txt"/>
 
     </LinearLayout>
 

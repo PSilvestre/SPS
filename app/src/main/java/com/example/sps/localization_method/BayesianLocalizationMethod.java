@@ -13,4 +13,9 @@ public class BayesianLocalizationMethod implements LocalizationMethod {
         float[] res = {1.0f, 0.0f, 0.0f, 0.0f};
         return res;
     }
+
+    @Override
+    public String getMiscInfo() {
+        return null;
+    }
 }
