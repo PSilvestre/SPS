@@ -17,6 +17,7 @@ import android.widget.TextView;
 
 import com.example.sps.R;
 import com.example.sps.data_loader.WifiReading;
+import com.example.sps.database.DatabaseService;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,7 +27,7 @@ public class DataCollectionActivity extends AppCompatActivity {
      * The wifi manager.
      */
     private WifiManager wifiManager;
-    private boolean scanResult;
+    private ScanInfo scanInfo;
 
     private Button btnScan;
     private Button btnScan10;
@@ -39,6 +40,8 @@ public class DataCollectionActivity extends AppCompatActivity {
 
     private AtomicInteger counter;
 
+    private DatabaseService dbConnection;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,6 +51,8 @@ public class DataCollectionActivity extends AppCompatActivity {
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
+        dbConnection = new DatabaseService(this);
+
         btnScan = (Button) findViewById(R.id.buttonScan);
 
         btnScan10 = (Button) findViewById(R.id.buttonScanx10);
@@ -55,7 +60,7 @@ public class DataCollectionActivity extends AppCompatActivity {
         txtStatus = (TextView) findViewById(R.id.textStatus);
         txtScans = (TextView) findViewById(R.id.textScans);
         txtFile = (EditText) findViewById(R.id.textFile);
-        receiver = new DataCollectionBroadcastReceiver(wifiManager, this);
+        receiver = new DataCollectionBroadcastReceiver(wifiManager, this, dbConnection);
         filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         this.registerReceiver(receiver, filter);
 
@@ -80,8 +85,9 @@ public class DataCollectionActivity extends AppCompatActivity {
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                scanResult = wifiManager.startScan();
-                if (scanResult)
+                //TODO Fix Direction (with android magnetometer)
+                scanInfo = new ScanInfo(wifiManager.startScan(), Integer.parseInt(txtFile.getText().toString()), Direction.EAST);
+                if (scanInfo.isScanSuccessful())
                     txtStatus.setText("Reading Status: Valid Scan");
                 else
                     txtStatus.setText("Reading Status: INVALID Scan");
@@ -95,8 +101,8 @@ public class DataCollectionActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         for (int i = 0; i < 10; i++) {
-                            scanResult = wifiManager.startScan();
-                            if (scanResult)
+                            scanInfo = new ScanInfo(wifiManager.startScan(), Integer.parseInt(txtFile.getText().toString()), Direction.EAST);
+                            if (scanInfo.isScanSuccessful())
                                 txtStatus.setText("Reading Status: Valid Scan");
                             else
                                 txtStatus.setText("Reading Status: INVALID Scan");
@@ -131,8 +137,8 @@ public class DataCollectionActivity extends AppCompatActivity {
     }
 
 
-    public boolean getScanResults() {
-        return scanResult;
+    public ScanInfo getScanInfo() {
+        return scanInfo;
     }
 
     public String getFileName() {

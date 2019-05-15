@@ -5,12 +5,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.sqlite.SQLiteDatabase;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Environment;
+import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -26,6 +26,7 @@ import com.example.sps.activity_recognizer.ActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
+import com.example.sps.database.DatabaseService;
 import com.example.sps.localization_method.KnnLocalizationMethod;
 import com.example.sps.localization_method.LocalizationMethod;
 import com.example.sps.localization_method.LocalizationAlgorithm;
@@ -76,7 +77,7 @@ public class LocateMeActivity extends AppCompatActivity  {
     private SensorManager sensorManager;
     private Sensor accelerometer;
 
-    private CopyOnWriteArrayList<FloatTriplet> accelorometerData;
+    private CopyOnWriteArrayList<FloatTriplet> accelerometerData;
 
     private List<ScanResult> scanData;
 
@@ -87,19 +88,16 @@ public class LocateMeActivity extends AppCompatActivity  {
 
     private WifiManager wifiManager;
 
-    //private SQLiteDatabase database;
-
-
     private float[] cellProbabilities;
+
+    private DatabaseService databaseService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locate_me);
 
-        //database = openOrCreateDatabase("")
-
-
+        databaseService = new DatabaseService(this);
         initialBeliefButton = findViewById(R.id.btn_initial_belief);
         locateMeButton = findViewById(R.id.btn_locate_me);
         collectDataButton = findViewById(R.id.btn_collect_data);
@@ -112,9 +110,12 @@ public class LocateMeActivity extends AppCompatActivity  {
         locSpin = findViewById(R.id.localization_algorithm_spin);
         actSpin = findViewById(R.id.activity_detection_spin);
 
+
+        //Set Adapter for the Localization Spinner
         ArrayAdapter<LocalizationAlgorithm> adapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, LocalizationAlgorithm.values());
         adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
         locSpin.setAdapter(adapter);
+        //Set Listener for Localization Spinner changes
         locSpin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
             @Override
@@ -125,14 +126,15 @@ public class LocateMeActivity extends AppCompatActivity  {
 
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {
-                localizationMethod = localizationMethod;
+                localizationMethod = localizationMethod; //Do nothing..
             }
         });
 
-
+        //Set Adapter for the Activity Spinner
         ArrayAdapter<ActivityAlgorithm> adapterAct = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, ActivityAlgorithm.values());
         adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
         actSpin.setAdapter(adapterAct);
+        //Set Listener for Activity Spinner changes
         actSpin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
             @Override
@@ -152,8 +154,8 @@ public class LocateMeActivity extends AppCompatActivity  {
         activityRecognizer = ActivityAlgorithm.NORMAL.getMethod();
         localizationMethod = LocalizationAlgorithm.KNN_RSSI.getMethod();
 
-        accelorometerData = new CopyOnWriteArrayList<>();
-        accelerometerListener = new AccelerometerListener(accelorometerData);
+        accelerometerData = new CopyOnWriteArrayList<>();
+        accelerometerListener = new AccelerometerListener(accelerometerData);
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
@@ -173,7 +175,7 @@ public class LocateMeActivity extends AppCompatActivity  {
             public void onClick(View view) {
                 cellText.setText("Loading...");
                 actText.setText("");
-                accelorometerData.removeAll(accelorometerData);
+                accelerometerData.removeAll(accelerometerData);
                 if (scanData != null)
                     scanData.removeAll(scanData);
 
@@ -192,7 +194,7 @@ public class LocateMeActivity extends AppCompatActivity  {
                     sensorManager.registerListener(accelerometerListener, accelerometer,
                             SensorManager.SENSOR_DELAY_NORMAL);
                 } else {
-                    System.out.println("No accelarometer\n");
+                    System.out.println("No accelerometer\n");
                 }
 
                 new Thread(new Runnable() {
@@ -200,7 +202,7 @@ public class LocateMeActivity extends AppCompatActivity  {
                     public void run() {
 
 
-                        while (scanData == null || scanData.size() == 0 || accelorometerData.size() < NUM_ACC_READINGS) { //spin while data not ready
+                        while (scanData == null || scanData.size() == 0 || accelerometerData.size() < NUM_ACC_READINGS) { //spin while data not ready
                             try {
                                 Thread.sleep(50);
                             } catch (InterruptedException e) {
@@ -212,8 +214,8 @@ public class LocateMeActivity extends AppCompatActivity  {
                         sensorManager.unregisterListener(accelerometerListener);
 
 
-                        final SubjectActivity activity = activityRecognizer.recognizeActivity(accelorometerData);
-                        cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities);
+                        final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData);
+                        cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService.getRawReadings());
 
                         final int cell = getIndexOfLargest(cellProbabilities) + 1;
 
@@ -226,20 +228,20 @@ public class LocateMeActivity extends AppCompatActivity  {
                                 fw.flush();
                                 fw.close();
                             } catch (Exception e) {
-
+                                e.printStackTrace();
                             }
-
-                            final float confidence = cellProbabilities[cell - 1];
-                            runOnUiThread(new Runnable() {
-
-                                @Override
-                                public void run() {
-
-                                    // Stuff that updates the UI
-                                    setLocalizationText(activity, cell, confidence);
-                                }
-                            });
                         }
+                        final float confidence = cellProbabilities[cell - 1];
+                        System.out.println("confidence is" + confidence);
+                        runOnUiThread(new Runnable() {
+
+                            @Override
+                            public void run() {
+
+                                // Stuff that updates the UI
+                                setLocalizationText(activity, cell, confidence);
+                            }
+                        });
                     }
                 }).start();
 
@@ -290,6 +292,7 @@ public class LocateMeActivity extends AppCompatActivity  {
         this.registerReceiver(wifiBroadcastReceiver, wifiIntentFilter);
     }
 
+
     protected void setInitialBelief(){
         cellProbabilities = new float[NUM_CELLS];
         for(int i = 0; i < NUM_CELLS; i++)
@@ -303,6 +306,7 @@ public class LocateMeActivity extends AppCompatActivity  {
             scanData = wifiManager.getScanResults();
         }
     }
+
 
 
 }

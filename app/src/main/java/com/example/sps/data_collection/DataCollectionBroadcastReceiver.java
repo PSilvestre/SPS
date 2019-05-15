@@ -8,6 +8,8 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Environment;
 
+import com.example.sps.database.DatabaseService;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.util.LinkedList;
@@ -17,35 +19,21 @@ public class DataCollectionBroadcastReceiver extends BroadcastReceiver {
 
     private WifiManager wifiManager;
     private DataCollectionActivity src;
+    private DatabaseService db;
 
-    public DataCollectionBroadcastReceiver(WifiManager wifiManager, DataCollectionActivity src) {
+    public DataCollectionBroadcastReceiver(WifiManager wifiManager, DataCollectionActivity src, DatabaseService dbservice) {
         this.wifiManager = wifiManager;
         this.src = src;
-
+        this.db = dbservice;
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
         List<ScanResult> scanResults = wifiManager.getScanResults();
         //TODO iterate and remove SSIDs with "AP"
-        if (src.getScanResults()) {
-            try {
-                File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps");
-                if (!dir.exists())
-                    dir.mkdir();
-
-
-                FileWriter fw = new FileWriter(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps/" + src.getFileName(), true);
-
-                for (ScanResult scanResult : scanResults) {
-                    fw.append(scanResult.BSSID + ", " + scanResult.level + "\n");
-                }
-                fw.append("\n");
-                fw.flush();
-                fw.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        ScanInfo scanInfo = src.getScanInfo();
+        if (scanInfo.isScanSuccessful()) {
+            db.insertTableScan(scanInfo.getCellId(),scanInfo.getDirection(), scanResults);
         }
 
         src.incAndDisplayCounter();

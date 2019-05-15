@@ -3,15 +3,15 @@ package com.example.sps.data_loader;
 import java.util.LinkedList;
 import java.util.List;
 
-public class WifiSample {
+public class WifiScan {
 
     private List<WifiReading> readings;
 
-    public WifiSample() {
+    public WifiScan() {
         readings = new LinkedList<>();
     }
 
-    public WifiSample(List<WifiReading> sample) {
+    public WifiScan(List<WifiReading> sample) {
         this.readings = sample;
     }
 

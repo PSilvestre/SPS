@@ -13,18 +13,18 @@ import static com.example.sps.LocateMeActivity.NUM_CELLS;
 
 public class WifiDataLoader {
 
-    List<List<WifiSample>> readingsPerCell;
+    List<List<WifiScan>> readingsPerCell;
 
     public WifiDataLoader() {
         readingsPerCell = new ArrayList<>(NUM_CELLS);
     }
 
-    public List<List<WifiSample>> load() throws IOException {
+    public List<List<WifiScan>> load() throws IOException {
         for(int i = 0; i < NUM_CELLS; i++){
 
-            List<WifiSample> samplesOfThisCell = new LinkedList<>();
+            List<WifiScan> samplesOfThisCell = new LinkedList<>();
 
-            WifiSample sample = new WifiSample();
+            WifiScan sample = new WifiScan();
             List<WifiReading> readings = sample.getReadings();
 
             BufferedReader reader = new BufferedReader(new FileReader(Environment.getExternalStorageDirectory() + "/sps/readings" + (i + 1) + ".txt"));
@@ -33,7 +33,7 @@ public class WifiDataLoader {
             while(line != null){
                 if(line.equals("")){
                     samplesOfThisCell.add(sample);
-                    sample = new WifiSample();
+                    sample = new WifiScan();
                     readings = sample.getReadings();
                 }else {
                     readings.add(WifiReading.fromString(line));

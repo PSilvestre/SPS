@@ -1,12 +1,11 @@
 package com.example.sps.localization_method;
 
+import android.app.Activity;
 import android.net.wifi.ScanResult;
 
-import com.example.sps.data_loader.WifiDataLoader;
-import com.example.sps.data_loader.WifiReading;
-import com.example.sps.data_loader.WifiSample;
+import com.example.sps.data_loader.WifiScan;
+import com.example.sps.database.DatabaseService;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -16,30 +15,26 @@ import static com.example.sps.LocateMeActivity.NUM_CELLS;
 
 public abstract class KnnLocalizationMethod implements LocalizationMethod {
     private static int NUM_NEIGHBOURS;
-    private List<List<WifiSample>> data;
 
-    public KnnLocalizationMethod(){
-        WifiDataLoader loader = new WifiDataLoader();
-        try {
-            data = loader.load();
-            int numSamples = 0;
-            for(List<WifiSample> list : data) numSamples += list.size();
-            NUM_NEIGHBOURS = (int) Math.sqrt(numSamples);
-            if (NUM_NEIGHBOURS % 2 == 0)
-                NUM_NEIGHBOURS ++;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+
 
 
     @Override
-    public float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities) {
+    public float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities, List<List<WifiScan>> data) {
+
+        System.out.println("start");
+        int numSamples = 0;
+        for(List<WifiScan> list : data) numSamples += list.size();
+
+        NUM_NEIGHBOURS = (int) Math.sqrt(numSamples);
+        if (NUM_NEIGHBOURS % 2 == 0)
+            NUM_NEIGHBOURS ++;
+
 
         List<Distance> distances = new LinkedList<>();
         for(int i = 0; i < data.size(); i++){
 
-            for(WifiSample sample : data.get(i))
+            for(WifiScan sample : data.get(i))
                 distances.add(new Distance(i,calculateDistance(scan, sample)));
 
         }
@@ -70,7 +65,7 @@ public abstract class KnnLocalizationMethod implements LocalizationMethod {
         return voteDistribution;
     }
 
-    public abstract int calculateDistance(List<ScanResult> scan, WifiSample sample);
+    public abstract int calculateDistance(List<ScanResult> scan, WifiScan sample);
 
     public int getNumNeighbours() { return NUM_NEIGHBOURS; }
 

@@ -3,18 +3,19 @@ package com.example.sps.localization_method;
 import android.net.wifi.ScanResult;
 
 import com.example.sps.data_loader.WifiReading;
-import com.example.sps.data_loader.WifiSample;
+import com.example.sps.data_loader.WifiScan;
+import com.example.sps.database.DatabaseService;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 public class RSSIFingerprintKnnLocalizationMethod extends KnnLocalizationMethod {
     private static final int MAX_DIST = 45;
 
+
     @Override
-    public int calculateDistance(List<ScanResult> scan, WifiSample sample) {
+    public int calculateDistance(List<ScanResult> scan, WifiScan sample) {
         int diff = 0;
         Map<String, Integer> scanRSSs = new HashMap<>();
         Map<String, Integer> sampleRSSs= new HashMap<>();
