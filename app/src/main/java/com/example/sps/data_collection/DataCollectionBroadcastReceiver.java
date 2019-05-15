@@ -12,6 +12,7 @@ import com.example.sps.database.DatabaseService;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,6 +21,8 @@ public class DataCollectionBroadcastReceiver extends BroadcastReceiver {
     private WifiManager wifiManager;
     private DataCollectionActivity src;
     private DatabaseService db;
+
+    private String[] bannedStrings = new String[]{"AP", "Android", "iPhone", "HotSpot", "Hotspot"};
 
     public DataCollectionBroadcastReceiver(WifiManager wifiManager, DataCollectionActivity src, DatabaseService dbservice) {
         this.wifiManager = wifiManager;
@@ -30,10 +33,20 @@ public class DataCollectionBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         List<ScanResult> scanResults = wifiManager.getScanResults();
-        //TODO iterate and remove SSIDs with "AP"
         ScanInfo scanInfo = src.getScanInfo();
         if (scanInfo.isScanSuccessful()) {
-            db.insertTableScan(scanInfo.getCellId(),scanInfo.getDirection(), scanResults);
+            List<ScanResult> filteredScanResults = new LinkedList<>();
+            boolean containsBanned = false;
+            for(ScanResult s : scanResults){
+                for(String banned : bannedStrings) {
+                    if (s.BSSID.contains(banned)) {
+                        containsBanned = true;
+                        break;
+                    }
+                }
+                if(!containsBanned) filteredScanResults.add(s);
+            }
+            db.insertTableScan(scanInfo.getCellId(),scanInfo.getDirection(), filteredScanResults);
         }
 
         src.incAndDisplayCounter();
