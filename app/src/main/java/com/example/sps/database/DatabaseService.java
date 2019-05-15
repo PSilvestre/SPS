@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.wifi.ScanResult;
 
+import org.apache.commons.math3.distribution.NormalDistribution;
+
 import com.example.sps.data_collection.Direction;
 import com.example.sps.data_loader.WifiReading;
 import com.example.sps.data_loader.WifiScan;
@@ -150,7 +152,46 @@ public class DatabaseService extends SQLiteOpenHelper {
                 }
                 data.get(cellId).add(new WifiScan(readings));
             }
-        }while(cellCursor.moveToNext());
+        } while(cellCursor.moveToNext());
+        return data;
+    }
+
+    //Updates a cell gaussians (probability mass functions of each AP)
+    public void insertTableGaussian(int cellID, String bssid, float mean, float stddev) {
+        ContentValues rowGaussian = new ContentValues();
+
+        rowGaussian.put(GAUSSIANS_COLUMN_CELL_ID, cellID);
+        rowGaussian.put(GAUSSIANS_COLUMN_BSSID, bssid);
+        rowGaussian.put(GAUSSIANS_COLUMN_MEAN, mean);
+        rowGaussian.put(GAUSSIANS_COLUMN_STDDEV, stddev);
+
+        dbconnection.insert(GAUSSIANS_TABLE_NAME, null, rowGaussian);
+    }
+
+    //Get a gaussian from the Gaussians table, for a given cell and bssid
+    public NormalDistribution getGaussian(int cellID, String bssid) {
+        Cursor gaussianCursor = dbconnection.rawQuery("SELECT * FROM " + GAUSSIANS_TABLE_NAME + " WHERE " + GAUSSIANS_COLUMN_CELL_ID + " = " + cellID + " AND " + GAUSSIANS_COLUMN_BSSID + " = '" + bssid + "'", new String[]{});
+
+        float mean = gaussianCursor.getInt(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_MEAN));
+        float stddev = gaussianCursor.getInt(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_STDDEV));
+
+        return new NormalDistribution(mean, stddev);
+    }
+
+
+    public List<WifiScan> getScansOfCell(int cellId) {
+        List<WifiScan> data = new LinkedList<>();
+
+        Cursor scanCursor = dbconnection.rawQuery("SELECT * FROM " + SCAN_TABLE_NAME + " WHERE " + SCAN_COLUMN_CELL_ID +" = " + cellId, new String[]{});
+        while(scanCursor.moveToNext()) {
+            int scanId = scanCursor.getInt(scanCursor.getColumnIndex(SCAN_COLUMN_SCAN_ID));
+            Cursor resultsCursor = dbconnection.rawQuery("SELECT * FROM " + SCAN_ITEM_TABLE_NAME + " WHERE " + SCAN_ITEM_COLUMN_SCAN_ID + " = " + scanId, new String[]{});
+            List<WifiReading> readings = new LinkedList<>();
+            while (resultsCursor.moveToNext()) {
+                readings.add(new WifiReading(resultsCursor.getString(resultsCursor.getColumnIndex(SCAN_ITEM_COLUMN_BSSID)), resultsCursor.getInt(resultsCursor.getColumnIndex(SCAN_ITEM_COLUMN_RSSI))));
+            }
+            data.add(new WifiScan(readings));
+        }
         return data;
     }
 }

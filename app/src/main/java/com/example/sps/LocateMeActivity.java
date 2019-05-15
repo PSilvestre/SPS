@@ -290,6 +290,7 @@ public class LocateMeActivity extends AppCompatActivity  {
     public void onResume(){
         super.onResume();
         this.registerReceiver(wifiBroadcastReceiver, wifiIntentFilter);
+        //UPDATE GAUSSIANS HERE
     }
 
 
