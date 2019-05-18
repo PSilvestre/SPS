@@ -1,15 +1,11 @@
 package com.example.sps.localization_method;
 
-import android.content.Context;
-
-import com.example.sps.database.DatabaseService;
-
 public enum LocalizationAlgorithm {
 
 
     KNN_FINGERPRINT(new FingerprintKnnLocalizationMethod()),
     KNN_RSSI(new RSSIFingerprintKnnLocalizationMethod()),
-    BAYESIAN(new BayesianLocalizationMethod());
+    BAYESIAN(new ParallelBayesianLocalizationMethod());
 
     private LocalizationMethod method;
 

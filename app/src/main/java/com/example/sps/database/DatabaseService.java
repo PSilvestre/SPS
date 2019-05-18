@@ -19,7 +19,7 @@ import java.util.List;
 public class DatabaseService extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "SPSDataBase.db";
-    public static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = 2;
 
 
     public static final String SCAN_TABLE_NAME = "scan";
@@ -72,8 +72,8 @@ public class DatabaseService extends SQLiteOpenHelper {
             "CREATE TABLE " + GAUSSIANS_TABLE_NAME + " (" +
                     GAUSSIANS_COLUMN_BSSID + " TEXT NOT NULL," +
                     GAUSSIANS_COLUMN_CELL_ID + " INTEGER NOT NULL," +
-                    GAUSSIANS_COLUMN_MEAN + " INTEGER," +
-                    GAUSSIANS_COLUMN_STDDEV + " TEXT," +
+                    GAUSSIANS_COLUMN_MEAN + " DECIMAL(3,2)," +
+                    GAUSSIANS_COLUMN_STDDEV + " DECIMAL(3,2)," +
                     "PRIMARY KEY (" + GAUSSIANS_COLUMN_BSSID + ", " + GAUSSIANS_COLUMN_CELL_ID + ")"  + ")";
 
     private static final String SQL_DELETE_TABLE_GAUSSIANS =
@@ -172,8 +172,8 @@ public class DatabaseService extends SQLiteOpenHelper {
     public NormalDistribution getGaussian(int cellID, String bssid) {
         Cursor gaussianCursor = dbconnection.rawQuery("SELECT * FROM " + GAUSSIANS_TABLE_NAME + " WHERE " + GAUSSIANS_COLUMN_CELL_ID + " = " + cellID + " AND " + GAUSSIANS_COLUMN_BSSID + " = '" + bssid + "'", new String[]{});
 
-        float mean = gaussianCursor.getInt(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_MEAN));
-        float stddev = gaussianCursor.getInt(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_STDDEV));
+        float mean = gaussianCursor.getFloat(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_MEAN));
+        float stddev = gaussianCursor.getFloat(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_STDDEV));
 
         return new NormalDistribution(mean, stddev);
     }
@@ -193,5 +193,13 @@ public class DatabaseService extends SQLiteOpenHelper {
             data.add(new WifiScan(readings));
         }
         return data;
+    }
+
+    public int getNumberOfCells() {
+
+        Cursor cellCursor = dbconnection.rawQuery("SELECT DISTINCT " + SCAN_COLUMN_CELL_ID + " FROM " + SCAN_TABLE_NAME, new String[]{});
+
+        return cellCursor.getCount();
+
     }
 }

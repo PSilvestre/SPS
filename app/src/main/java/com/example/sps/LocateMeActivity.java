@@ -52,7 +52,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 
 public class LocateMeActivity extends AppCompatActivity  {
-    public static final int NUM_CELLS = 4;
 
     public static final int NUM_ACC_READINGS = 20;
 
@@ -215,7 +214,7 @@ public class LocateMeActivity extends AppCompatActivity  {
 
 
                         final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData);
-                        cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService.getRawReadings());
+                        cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
 
                         final int cell = getIndexOfLargest(cellProbabilities) + 1;
 
@@ -295,9 +294,10 @@ public class LocateMeActivity extends AppCompatActivity  {
 
 
     protected void setInitialBelief(){
-        cellProbabilities = new float[NUM_CELLS];
-        for(int i = 0; i < NUM_CELLS; i++)
-            cellProbabilities[i] = 1.0f/NUM_CELLS;
+        int numCells = databaseService.getNumberOfCells();
+        cellProbabilities = new float[numCells];
+        for(int i = 0; i < numCells; i++)
+            cellProbabilities[i] = 1.0f/numCells;
     }
 
     public class simpleScanBroadcastReceiver extends BroadcastReceiver {

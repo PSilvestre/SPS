@@ -2,7 +2,6 @@ package com.example.sps.data_collection;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -16,10 +15,14 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.example.sps.R;
-import com.example.sps.data_loader.WifiReading;
+import com.example.sps.Utils;
+import com.example.sps.data_loader.WifiScan;
 import com.example.sps.database.DatabaseService;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
 
 public class DataCollectionActivity extends AppCompatActivity {
 
@@ -124,10 +127,26 @@ public class DataCollectionActivity extends AppCompatActivity {
     }
 
 
+    private void updateGaussians(){
+
+        for(int cellId = 1; cellId <= dbConnection.getNumberOfCells(); cellId++){
+            List<WifiScan> scansOfCell = dbConnection.getScansOfCell(cellId);
+
+            Map<String, Float> means = Utils.calculateMeans(scansOfCell);
+            Map<String, Float> stddevs = Utils.calculateStdDevs(scansOfCell, means);
+
+            for(String bssid : means.keySet())
+                dbConnection.insertTableGaussian(cellId, bssid, means.get(bssid), stddevs.get(bssid));
+
+        }
+    }
+
     @Override
     public void onPause(){
         super.onPause();
         this.unregisterReceiver(receiver);
+        updateGaussians();
+
     }
 
     @Override

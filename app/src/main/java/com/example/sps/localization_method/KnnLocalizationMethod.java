@@ -2,6 +2,7 @@ package com.example.sps.localization_method;
 
 import android.app.Activity;
 import android.net.wifi.ScanResult;
+import android.provider.ContactsContract;
 
 import com.example.sps.data_loader.WifiScan;
 import com.example.sps.database.DatabaseService;
@@ -11,7 +12,6 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.example.sps.LocateMeActivity.NUM_CELLS;
 
 public abstract class KnnLocalizationMethod implements LocalizationMethod {
     private static int NUM_NEIGHBOURS;
@@ -19,8 +19,11 @@ public abstract class KnnLocalizationMethod implements LocalizationMethod {
 
 
 
+
     @Override
-    public float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities, List<List<WifiScan>> data) {
+    public float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities,  DatabaseService databaseService) {
+
+        List<List<WifiScan>> data = databaseService.getRawReadings();
 
         System.out.println("start");
         int numSamples = 0;
@@ -49,17 +52,17 @@ public abstract class KnnLocalizationMethod implements LocalizationMethod {
         List<Distance> closest = distances.subList(0, NUM_NEIGHBOURS);
 
 
-        return votesDistribution(closest);
+        return votesDistribution(closest, databaseService);
     }
 
     // Returns the probability of being in each cell based on the cells of the closest k neighbours
-    private float[] votesDistribution(List<Distance> closest) {
-        float[] voteDistribution = new float[NUM_CELLS];
+    private float[] votesDistribution(List<Distance> closest, DatabaseService databaseService) {
+        float[] voteDistribution = new float[databaseService.getNumberOfCells()];
 
         for(Distance d : closest)
             voteDistribution[d.getCell()]++;
 
-        for (int i = 0; i < NUM_CELLS; i++)
+        for (int i = 0; i < databaseService.getNumberOfCells(); i++)
             voteDistribution[i] = voteDistribution[i] / NUM_NEIGHBOURS;
 
         return voteDistribution;

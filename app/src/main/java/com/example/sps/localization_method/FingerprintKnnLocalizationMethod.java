@@ -11,6 +11,7 @@ import java.util.List;
 
 public class FingerprintKnnLocalizationMethod extends KnnLocalizationMethod {
 
+
     @Override
     public int calculateDistance(List<ScanResult> scan, WifiScan sample) {
         int differences = 0;
