@@ -129,6 +129,7 @@ public class DataCollectionActivity extends AppCompatActivity {
 
     private void updateGaussians(){
 
+        dbConnection.clearGaussianTable();
         for(int cellId = 1; cellId <= dbConnection.getNumberOfCells(); cellId++){
             List<WifiScan> scansOfCell = dbConnection.getScansOfCell(cellId);
 
@@ -146,7 +147,6 @@ public class DataCollectionActivity extends AppCompatActivity {
         super.onPause();
         this.unregisterReceiver(receiver);
         updateGaussians();
-
     }
 
     @Override

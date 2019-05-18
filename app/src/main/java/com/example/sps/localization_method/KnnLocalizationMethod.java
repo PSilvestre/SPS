@@ -25,7 +25,6 @@ public abstract class KnnLocalizationMethod implements LocalizationMethod {
 
         List<List<WifiScan>> data = databaseService.getRawReadings();
 
-        System.out.println("start");
         int numSamples = 0;
         for(List<WifiScan> list : data) numSamples += list.size();
 

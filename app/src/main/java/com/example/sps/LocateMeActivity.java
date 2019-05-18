@@ -108,7 +108,7 @@ public class LocateMeActivity extends AppCompatActivity  {
 
         locSpin = findViewById(R.id.localization_algorithm_spin);
         actSpin = findViewById(R.id.activity_detection_spin);
-
+        setInitialBelief();
 
         //Set Adapter for the Localization Spinner
         ArrayAdapter<LocalizationAlgorithm> adapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, LocalizationAlgorithm.values());
@@ -215,7 +215,8 @@ public class LocateMeActivity extends AppCompatActivity  {
 
                         final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData);
                         cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
-
+                        for(int i = 0; i < cellProbabilities.length; i++)
+                            System.out.println("prob["+i+"] = " + cellProbabilities[i]);
                         final int cell = getIndexOfLargest(cellProbabilities) + 1;
 
                         if (! currCellText.getText().toString().equals("CurrentCell (for stats)")) {
