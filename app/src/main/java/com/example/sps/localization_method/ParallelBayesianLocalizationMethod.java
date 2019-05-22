@@ -28,16 +28,28 @@ public class ParallelBayesianLocalizationMethod implements LocalizationMethod {
             for(int i = 1; i <= numCells; i++) {
                 ScanResult scanResult = scan.get(j);
                 NormalDistribution normal = databaseService.getGaussian(i, scanResult.BSSID);
-                double rssi = ((double) scanResult.level);
-                double rssiProb = (normal.cumulativeProbability(rssi + 0.5) - normal.cumulativeProbability(rssi - 0.5));
-                double rssiProbTimesPrior = rssiProb * priorProbabilities[i];
-                probForBssid[i-1] = rssiProbTimesPrior;
-                normalizer += rssiProbTimesPrior;
+                if(normal != null) {
+                    System.out.println(normal.getStandardDeviation());
+                    double rssi = ((double) scanResult.level);
+                    double rssiProb = (normal.cumulativeProbability(rssi + 0.5) - normal.cumulativeProbability(rssi - 0.5));
+                    System.out.println("rssiProb[" + i +"] =" + rssiProb);
+
+                    double rssiProbTimesPrior = rssiProb * priorProbabilities[i-1];
+                    System.out.println("rssiProbTimesPrior[" + i +"] =" + rssiProbTimesPrior);
+
+                    probForBssid[i - 1] = rssiProbTimesPrior;
+                    normalizer += rssiProbTimesPrior;
+                }else {
+                    probForBssid[i - 1] = 0;
+                    normalizer += 0;
+                }
             }
 
-            for (int i = 0; i < numCells; i++) {
-                probForBssid[i] /= normalizer;
-            }
+
+            if (normalizer != 0)
+                for (int i = 0; i < numCells; i++)
+                    probForBssid[i] /= normalizer;
+
 
             if(j == 0) {
                 currProb = probForBssid;

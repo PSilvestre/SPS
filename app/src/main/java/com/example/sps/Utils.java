@@ -15,15 +15,14 @@ public class Utils {
         Map<String, Float> toReturn = new HashMap<>();
 
         //BSSID -> histogram of RSS values
-        Map<String, Integer[]> count = new HashMap<>();
+        Map<String, int[]> count = new HashMap<>();
 
 
         for(WifiScan scan : scansOfCell) {
-
             for(WifiReading reading : scan.getReadings()) {
 
                 if(!count.containsKey(reading.getBSSID())) {
-                    count.put(reading.getBSSID(), new Integer[NUM_BUCKETS_TO_USE]);
+                    count.put(reading.getBSSID(), new int[NUM_BUCKETS_TO_USE]);
                 }
 
                 count.get(reading.getBSSID())[Math.abs(reading.getRSS())]++;
@@ -32,16 +31,17 @@ public class Utils {
         }
 
         for(String bssid : count.keySet()){
-            Integer[] hist = count.get(bssid);
+            int[] hist = count.get(bssid);
             float mean = 0;
             int total = 0;
+
             for(int i = 0; i < NUM_BUCKETS_TO_USE; i++){
                 total += hist[i];
             }
             for(int i = 0; i < NUM_BUCKETS_TO_USE; i++){
                 mean += hist[i] * i;
             }
-            toReturn.put(bssid, mean);
+            toReturn.put(bssid, - mean/total);
         }
         return toReturn;
     }
@@ -50,14 +50,14 @@ public class Utils {
         Map<String, Float> toReturn = new HashMap<>();
 
         //BSSID -> histogram of RSS values
-        Map<String, Integer[]> count = new HashMap<>();
+        Map<String, int[]> count = new HashMap<>();
 
         for(WifiScan scan : scansOfCell) {
 
             for(WifiReading reading : scan.getReadings()) {
 
                 if(!count.containsKey(reading.getBSSID())) {
-                    count.put(reading.getBSSID(), new Integer[NUM_BUCKETS_TO_USE]);
+                    count.put(reading.getBSSID(), new int[NUM_BUCKETS_TO_USE]);
                 }
 
                 count.get(reading.getBSSID())[Math.abs(reading.getRSS())]++;
@@ -66,15 +66,20 @@ public class Utils {
         }
 
         for(String bssid : count.keySet()){
-            Integer[] hist = count.get(bssid);
+            int[] hist = count.get(bssid);
             float stddev = 0;
             float mean = means.get(bssid);
+            int c = 0;
             for(int i = 0; i < NUM_BUCKETS_TO_USE; i++){
-                stddev += Math.pow(mean - hist[i],2);
+                for(int j = 0; j < hist[i]; j++) {
+                    stddev += Math.pow(-i - mean, 2);
+                }
+                c += hist[i];
             }
-            stddev /= NUM_BUCKETS_TO_USE;
+            stddev /= c;
 
 
+            System.out.println("std dev: " + (float) Math.sqrt(stddev));
             toReturn.put(bssid, (float) Math.sqrt(stddev));
         }
 
