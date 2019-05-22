@@ -30,22 +30,24 @@ public class DataCollectionBroadcastReceiver extends BroadcastReceiver {
         this.db = dbservice;
     }
 
+    public boolean containsBannedWord(String toTest) {
+        for(String banned : bannedStrings) {
+            if (toTest.contains(banned)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void onReceive(Context context, Intent intent) {
         List<ScanResult> scanResults = wifiManager.getScanResults();
         ScanInfo scanInfo = src.getScanInfo();
         if (scanInfo.isScanSuccessful()) {
             List<ScanResult> filteredScanResults = new LinkedList<>();
-            boolean containsBanned = false;
-            for(ScanResult s : scanResults){
-                for(String banned : bannedStrings) {
-                    if (s.BSSID.contains(banned)) {
-                        containsBanned = true;
-                        break;
-                    }
-                }
-                if(!containsBanned) filteredScanResults.add(s);
-            }
+            for(ScanResult s : scanResults)
+                if(!containsBannedWord(s.BSSID)) filteredScanResults.add(s);
+
             db.insertTableScan(scanInfo.getCellId(),scanInfo.getDirection(), filteredScanResults);
         }
 
