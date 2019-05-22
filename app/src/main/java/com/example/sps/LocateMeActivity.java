@@ -132,38 +132,41 @@ public class LocateMeActivity extends AppCompatActivity {
 
         rectangle.getPaint().setColor(Color.BLACK);
         rectangle.getPaint().setStyle(Paint.Style.STROKE);
-        rectangle.getPaint().setStrokeWidth(5);
+        rectangle.getPaint().setStrokeWidth(10);
         List<ShapeDrawable> drawableWalls = new ArrayList<>();
 
 
         // draw the objects
-        /*
+        //OffSet from the starting point
+        int xOffSet = 0;
+        int yOffSet = 0;
+
+        int rot = 0;
+
+        //normal
+        if (rot == 0)
+            for (Cell c : walls.getCells()) {
+                rectangle.setBounds(Math.round(c.getLefttWall() * xcale) + xOffSet, Math.round(c.getTopWall() * xcale) + yOffSet,
+                                Math.round(c.getRightWall() * xcale) + xOffSet, Math.round(c.getBottomWall() * xcale) + yOffSet);
+                rectangle.draw(canvas);
+            }
+
+
+        if (rot == 1)
         for (Cell c : walls.getCells()) {
-            rectangle.setBounds(Math.round(c.getLefttWall() * xcale), Math.round(c.getTopWall() * xcale),
-                                Math.round(c.getRightWall() * xcale), Math.round(c.getBottomWall() * xcale));
+            rectangle.setBounds(Math.round(c.getTopWall() * xcale) + xOffSet, Math.round(c.getLefttWall() * xcale) + yOffSet,
+                                Math.round(c.getBottomWall() * xcale) + xOffSet, Math.round(c.getRightWall() * xcale) + yOffSet);
             rectangle.draw(canvas);
         }
-        */
-        List<Cell> cellList = new LinkedList<>();
 
-        Cell c = walls.getCells().get(0);
-
-        System.out.println(""+xcale);
-
-        int xScalling = 10;
-        int x = size.x;
-        int xOffSet = x/ xScalling;
-
-        System.out.println("TOP WALL AT: " + c.getTopWall());
-        System.out.println("LEFT WALL AT: " + c.getLefttWall());
-        System.out.println("RIGHT WALL AT: " + c.getRightWall());
-        System.out.println("BOTTOM WALL AT: " + c.getLefttWall());
-
-        rectangle.setBounds(-500, 300, 200, 0);
-        //        d3.setBounds(width/2+210, height/2-90, width/2+220, height/2+70);
-        // right > left and top > bottom.
-        rectangle.draw(canvas);
-
+        //PERFECT
+        xOffSet = 700;
+        if (rot == 2)
+        for (Cell c : walls.getCells()) {
+            rectangle.setBounds( xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+                                 xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
+            rectangle.draw(canvas);
+        }
     }
 
     @Override
