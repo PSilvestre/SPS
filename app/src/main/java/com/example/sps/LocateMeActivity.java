@@ -5,6 +5,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Point;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.RectShape;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
@@ -13,11 +20,13 @@ import android.os.Environment;
 import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.Display;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -30,8 +39,12 @@ import com.example.sps.database.DatabaseService;
 import com.example.sps.localization_method.KnnLocalizationMethod;
 import com.example.sps.localization_method.LocalizationMethod;
 import com.example.sps.localization_method.LocalizationAlgorithm;
+import com.example.sps.map.Cell;
+import com.example.sps.map.WallPositions;
 
 import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -51,11 +64,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 //TODO: UI, duh
 
 
-public class LocateMeActivity extends AppCompatActivity  {
+public class LocateMeActivity extends AppCompatActivity {
 
     public static final int NUM_ACC_READINGS = 20;
 
 
+    private Canvas canvas;
 
     private Button initialBeliefButton;
     private Button locateMeButton;
@@ -91,6 +105,40 @@ public class LocateMeActivity extends AppCompatActivity  {
 
     private DatabaseService databaseService;
 
+
+    private void drawMap() {
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
+
+
+        WallPositions walls = new WallPositions();
+
+        float xcale = width / walls.getMaxWidth();
+
+
+        ShapeDrawable rectangle = new ShapeDrawable(new RectShape());
+
+        rectangle.getPaint().setColor(Color.BLACK);
+
+        List<ShapeDrawable> drawableWalls = new ArrayList<>();
+
+        ImageView canvasView = (ImageView) findViewById(R.id.canvas);
+        Bitmap blankBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        canvas = new Canvas(blankBitmap);
+        canvasView.setImageBitmap(blankBitmap);
+
+        // draw the objects
+        for (Cell c : walls.getCells()) {
+            rectangle.setBounds(Math.round(c.getLefttWall() * xcale), Math.round(c.getTopWall() * xcale), Math.round(c.getRightWall() * xcale), Math.round(c.getBottomWall() * xcale));
+            rectangle.draw(canvas);
+        }
+
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -119,7 +167,7 @@ public class LocateMeActivity extends AppCompatActivity  {
 
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                localizationMethod = ((LocalizationAlgorithm)adapterView.getItemAtPosition(i)).getMethod();
+                localizationMethod = ((LocalizationAlgorithm) adapterView.getItemAtPosition(i)).getMethod();
 
             }
 
@@ -138,7 +186,7 @@ public class LocateMeActivity extends AppCompatActivity  {
 
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                activityRecognizer = ((ActivityAlgorithm)adapterView.getItemAtPosition(i)).getMethod();
+                activityRecognizer = ((ActivityAlgorithm) adapterView.getItemAtPosition(i)).getMethod();
 
             }
 
@@ -147,7 +195,6 @@ public class LocateMeActivity extends AppCompatActivity  {
                 activityRecognizer = activityRecognizer; //do nothing
             }
         });
-
 
 
         activityRecognizer = ActivityAlgorithm.NORMAL.getMethod();
@@ -215,11 +262,11 @@ public class LocateMeActivity extends AppCompatActivity  {
 
                         final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData);
                         cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
-                        for(int i = 0; i < cellProbabilities.length; i++)
-                            System.out.println("prob["+i+"] = " + cellProbabilities[i]);
+                        for (int i = 0; i < cellProbabilities.length; i++)
+                            System.out.println("prob[" + i + "] = " + cellProbabilities[i]);
                         final int cell = getIndexOfLargest(cellProbabilities) + 1;
 
-                        if (! currCellText.getText().toString().equals("CurrentCell (for stats)")) {
+                        if (!currCellText.getText().toString().equals("CurrentCell (for stats)")) {
                             int txtCell = Integer.parseInt(currCellText.getText().toString());
 
                             try {
@@ -259,46 +306,44 @@ public class LocateMeActivity extends AppCompatActivity  {
 
     }
 
-    public int getIndexOfLargest( float[] array ) {
-        if ( array == null || array.length == 0 )
+    public int getIndexOfLargest(float[] array) {
+        if (array == null || array.length == 0)
             return -1;
 
         int largest = 0;
-        for ( int i = 1; i < array.length; i++ ) {
-            if ( array[i] > array[largest] ) largest = i;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] > array[largest]) largest = i;
         }
         return largest;
     }
 
 
-
-
     private void setLocalizationText(SubjectActivity activity, int cell, float confidence) {
         this.actText.setText("You are " + activity.toString());
-        this.cellText.setText("You are at cell " + cell + " with confidence " + Math.round((confidence*100)*100)/100 + "%");
-        if(this.localizationMethod instanceof KnnLocalizationMethod)
+        this.cellText.setText("You are at cell " + cell + " with confidence " + Math.round((confidence * 100) * 100) / 100 + "%");
+        if (this.localizationMethod instanceof KnnLocalizationMethod)
             miscText.setText("Number of Neighbours: " + ((KnnLocalizationMethod) localizationMethod).getNumNeighbours());
     }
 
     @Override
-    public void onPause(){
+    public void onPause() {
         super.onPause();
         this.unregisterReceiver(wifiBroadcastReceiver);
     }
 
     @Override
-    public void onResume(){
+    public void onResume() {
         super.onResume();
         this.registerReceiver(wifiBroadcastReceiver, wifiIntentFilter);
         //UPDATE GAUSSIANS HERE
     }
 
 
-    protected void setInitialBelief(){
+    protected void setInitialBelief() {
         int numCells = databaseService.getNumberOfCells();
         cellProbabilities = new float[numCells];
-        for(int i = 0; i < numCells; i++)
-            cellProbabilities[i] = 1.0f/numCells;
+        for (int i = 0; i < numCells; i++)
+            cellProbabilities[i] = 1.0f / numCells;
     }
 
     public class simpleScanBroadcastReceiver extends BroadcastReceiver {
@@ -308,7 +353,6 @@ public class LocateMeActivity extends AppCompatActivity  {
             scanData = wifiManager.getScanResults();
         }
     }
-
 
 
 }
