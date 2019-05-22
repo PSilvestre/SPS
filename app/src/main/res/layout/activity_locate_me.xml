@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_gravity="center"
     android:background="#ffffff"
     android:gravity="center"
@@ -15,26 +15,68 @@
         android:id="@+id/canvas"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/white"
-        />
+        android:background="@color/white" />
 
     <TextView
         android:id="@+id/cell_guess"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/cell_guess_s"/>
+        android:text="@string/cell_guess_s" />
 
     <TextView
         android:id="@+id/act_guess"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/act_guess_s"/>
+        android:text="@string/act_guess_s" />
 
     <TextView
         android:id="@+id/misc_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text=""/>
+        android:text="" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="40dp"
+        android:background="#ffffff"
+        android:gravity="bottom|center_horizontal"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="40dp"
+            android:background="#ffffff"
+            android:gravity="bottom|center_horizontal"
+            android:orientation="horizontal">
+
+            <Spinner
+                android:id="@+id/localization_algorithm_spin"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content">
+
+            </Spinner>
+
+            <Spinner
+                android:id="@+id/activity_detection_spin"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content">
+            </Spinner>
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/currCell"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:inputType="number"
+            android:text="@string/currCellStats_default"
+            android:textSize="20sp" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -45,57 +87,29 @@
 
         <Button
             android:id="@+id/btn_initial_belief"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="@string/initial_belief_s" />
 
         <Button
             android:id="@+id/btn_locate_me"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
+
             android:text="@string/locate_me_s" />
 
         <Button
             android:id="@+id/btn_collect_data"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
+
             android:text="@string/collect_data_s" />
 
 
     </LinearLayout>
 
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#ffffff"
-        android:layout_margin="40dp"
-        android:gravity="bottom|center_horizontal"
-        android:orientation="vertical">
-
-        <Spinner
-            android:id="@+id/localization_algorithm_spin"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
-        </Spinner>
-
-        <Spinner
-            android:id="@+id/activity_detection_spin"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
-        </Spinner>
-
-        <EditText
-            android:id="@+id/currCell"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize = "20sp"
-            android:gravity="center"
-            android:inputType="number"
-            android:text="@string/currCellStats_default"/>
-
-    </LinearLayout>
 
 </LinearLayout>
