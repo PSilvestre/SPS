@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
@@ -110,8 +111,16 @@ public class LocateMeActivity extends AppCompatActivity {
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
-        int width = size.x;
-        int height = size.y;
+        ImageView canvasView = (ImageView) findViewById(R.id.canvas);
+
+        Bitmap blankBitmap = Bitmap.createBitmap(size.x, size.y,  Bitmap.Config.ARGB_8888);
+
+        canvas = new Canvas(blankBitmap);
+
+        canvasView.setImageBitmap(blankBitmap);
+
+        int width = this.canvas.getWidth();
+
 
 
         WallPositions walls = new WallPositions();
@@ -122,20 +131,38 @@ public class LocateMeActivity extends AppCompatActivity {
         ShapeDrawable rectangle = new ShapeDrawable(new RectShape());
 
         rectangle.getPaint().setColor(Color.BLACK);
-
+        rectangle.getPaint().setStyle(Paint.Style.STROKE);
+        rectangle.getPaint().setStrokeWidth(5);
         List<ShapeDrawable> drawableWalls = new ArrayList<>();
 
-        ImageView canvasView = (ImageView) findViewById(R.id.canvas);
-        Bitmap blankBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        canvas = new Canvas(blankBitmap);
-        canvasView.setImageBitmap(blankBitmap);
 
         // draw the objects
+        /*
         for (Cell c : walls.getCells()) {
-            rectangle.setBounds(Math.round(c.getLefttWall() * xcale), Math.round(c.getTopWall() * xcale), Math.round(c.getRightWall() * xcale), Math.round(c.getBottomWall() * xcale));
+            rectangle.setBounds(Math.round(c.getLefttWall() * xcale), Math.round(c.getTopWall() * xcale),
+                                Math.round(c.getRightWall() * xcale), Math.round(c.getBottomWall() * xcale));
             rectangle.draw(canvas);
         }
+        */
+        List<Cell> cellList = new LinkedList<>();
 
+        Cell c = walls.getCells().get(0);
+
+        System.out.println(""+xcale);
+
+        int xScalling = 10;
+        int x = size.x;
+        int xOffSet = x/ xScalling;
+
+        System.out.println("TOP WALL AT: " + c.getTopWall());
+        System.out.println("LEFT WALL AT: " + c.getLefttWall());
+        System.out.println("RIGHT WALL AT: " + c.getRightWall());
+        System.out.println("BOTTOM WALL AT: " + c.getLefttWall());
+
+        rectangle.setBounds(-500, 300, 200, 0);
+        //        d3.setBounds(width/2+210, height/2-90, width/2+220, height/2+70);
+        // right > left and top > bottom.
+        rectangle.draw(canvas);
 
     }
 
@@ -157,6 +184,7 @@ public class LocateMeActivity extends AppCompatActivity {
         locSpin = findViewById(R.id.localization_algorithm_spin);
         actSpin = findViewById(R.id.activity_detection_spin);
         setInitialBelief();
+
 
         //Set Adapter for the Localization Spinner
         ArrayAdapter<LocalizationAlgorithm> adapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, LocalizationAlgorithm.values());
@@ -335,9 +363,15 @@ public class LocateMeActivity extends AppCompatActivity {
     public void onResume() {
         super.onResume();
         this.registerReceiver(wifiBroadcastReceiver, wifiIntentFilter);
-        //UPDATE GAUSSIANS HERE
+
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus){
+        super.onWindowFocusChanged(hasFocus);
+        drawMap();
+
+    }
 
     protected void setInitialBelief() {
         int numCells = databaseService.getNumberOfCells();
