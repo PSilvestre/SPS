@@ -21,7 +21,6 @@ public class SerialBayesianLocalizationMethod implements LocalizationMethod {
 
         int numResultsTakenIntoAccount = 0;
         for (ScanResult scanResult : scan) { //iterate over scans
-
             priorProbabilities = computeProbWithReading(scanResult, priorProbabilities, databaseService);
 
             numResultsTakenIntoAccount++;
@@ -39,7 +38,12 @@ public class SerialBayesianLocalizationMethod implements LocalizationMethod {
         for (int i = 0; i < priorProbabilities.length; i++) { // iterate over cells
 
             NormalDistribution dist = databaseService.getGaussian(i, scanResult.BSSID);
-            double probObservingRssInCellI = dist.cumulativeProbability(scanResult.level + 0.5) - dist.cumulativeProbability(scanResult.level - 0.5);
+            double probObservingRssInCellI;
+            if (dist == null)
+                probObservingRssInCellI = 0.05;
+            else
+                probObservingRssInCellI = dist.cumulativeProbability(scanResult.level + 0.5) - dist.cumulativeProbability(scanResult.level - 0.5);
+
             normalizer += probObservingRssInCellI * priorProbabilities[i];
             priorProbabilities[i] = (float) (probObservingRssInCellI * priorProbabilities[i]);
 

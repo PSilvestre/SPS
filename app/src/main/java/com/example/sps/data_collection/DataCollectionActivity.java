@@ -34,6 +34,7 @@ public class DataCollectionActivity extends AppCompatActivity {
 
     private Button btnScan;
     private Button btnScan10;
+    private Button btnDeleteData;
 
     private TextView txtStatus;
     private TextView txtScans;
@@ -59,6 +60,8 @@ public class DataCollectionActivity extends AppCompatActivity {
         btnScan = (Button) findViewById(R.id.buttonScan);
 
         btnScan10 = (Button) findViewById(R.id.buttonScanx10);
+
+        btnDeleteData = (Button) findViewById(R.id.deleteData);
 
         txtStatus = (TextView) findViewById(R.id.textStatus);
         txtScans = (TextView) findViewById(R.id.textScans);
@@ -109,10 +112,12 @@ public class DataCollectionActivity extends AppCompatActivity {
                                 txtStatus.setText("Reading Status: Valid Scan");
                             else
                                 txtStatus.setText("Reading Status: INVALID Scan");
+                            while(scanInfo != null){
                             try {
-                                Thread.sleep(1000);
+                                Thread.sleep(50);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
+                            }
                             }
                         }
                     }
@@ -120,7 +125,12 @@ public class DataCollectionActivity extends AppCompatActivity {
             }
         });
 
-
+        btnDeleteData.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dbConnection.deleteDB();
+            }
+        });
 
 
 
@@ -158,6 +168,10 @@ public class DataCollectionActivity extends AppCompatActivity {
 
     public ScanInfo getScanInfo() {
         return scanInfo;
+    }
+
+    public void setScanInfoToNull() {
+        this.scanInfo = null;
     }
 
     public String getFileName() {

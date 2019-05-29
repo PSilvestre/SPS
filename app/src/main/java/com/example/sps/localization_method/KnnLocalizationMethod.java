@@ -24,7 +24,8 @@ public abstract class KnnLocalizationMethod implements LocalizationMethod {
     public float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities,  DatabaseService databaseService) {
 
         List<List<WifiScan>> data = databaseService.getRawReadings();
-
+        if(data.size() == 0) return priorProbabilities;
+        System.out.println("AAAAAAAAAAAAAAAAAAAA" + data.size());
         int numSamples = 0;
         for(List<WifiScan> list : data) numSamples += list.size();
 

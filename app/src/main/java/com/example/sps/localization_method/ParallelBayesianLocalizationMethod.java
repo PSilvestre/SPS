@@ -15,56 +15,64 @@ import java.util.List;
 public class ParallelBayesianLocalizationMethod implements LocalizationMethod {
 
 
+    int numBSSIDSUsed;
+
     @Override
-    public float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities,  DatabaseService databaseService) {
+    public float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities, DatabaseService databaseService) {
 
         int numCells = priorProbabilities.length;
         double[] currProb = new double[numCells];
-        for(int j = 0; j < scan.size(); j++) {
+        boolean useBSSID;
 
+        numBSSIDSUsed = 0;
+        for (int j = 0; j < scan.size(); j++) {
+            useBSSID = false;
             float normalizer = 0;
             double[] probForBssid = new double[numCells];
 
-            for(int i = 1; i <= numCells; i++) {
+            for (int i = 1; i <= numCells; i++) {
                 ScanResult scanResult = scan.get(j);
                 NormalDistribution normal = databaseService.getGaussian(i, scanResult.BSSID);
-                if(normal != null) {
-                    System.out.println(normal.getStandardDeviation());
+                if (normal != null) {
                     double rssi = ((double) scanResult.level);
                     double rssiProb = (normal.cumulativeProbability(rssi + 0.5) - normal.cumulativeProbability(rssi - 0.5));
-                    System.out.println("rssiProb[" + i +"] =" + rssiProb);
-
-                    double rssiProbTimesPrior = rssiProb * priorProbabilities[i-1];
-                    System.out.println("rssiProbTimesPrior[" + i +"] =" + rssiProbTimesPrior);
+                    double rssiProbTimesPrior = rssiProb * priorProbabilities[i - 1];
 
                     probForBssid[i - 1] = rssiProbTimesPrior;
                     normalizer += rssiProbTimesPrior;
-                }else {
+                    if (rssiProb > 0.0)
+                        useBSSID = true;
+                } else {
                     probForBssid[i - 1] = 0;
                     normalizer += 0;
                 }
             }
 
 
-            if (normalizer != 0)
-                for (int i = 0; i < numCells; i++)
+            if (normalizer > 0) {
+                for (int i = 0; i < numCells; i++) {
                     probForBssid[i] /= normalizer;
-
-
-            if(j == 0) {
-                currProb = probForBssid;
+                }
             }
 
-            if(j > 0) {
+            float sum = 0f;
+            if (useBSSID && numBSSIDSUsed == 0) {
                 for (int i = 0; i < numCells; i++) {
-                    currProb[i] = (currProb[i] * j + probForBssid[i]) / (j + 1) ;
+                    currProb[i] = probForBssid[i];
                 }
+                numBSSIDSUsed++;
+            } else if (useBSSID) {
+                for (int i = 0; i < numCells; i++) {
+
+                    currProb[i] = (currProb[i] * numBSSIDSUsed + probForBssid[i]) / (numBSSIDSUsed + 1);
+                }
+                numBSSIDSUsed++;
             }
 
         }
 
         float[] toReturn = new float[numCells];
-        for(int i = 0; i < numCells; i++)
+        for (int i = 0; i < numCells; i++)
             toReturn[i] = (float) currProb[i];
 
         return toReturn;
@@ -74,6 +82,6 @@ public class ParallelBayesianLocalizationMethod implements LocalizationMethod {
 
     @Override
     public String getMiscInfo() {
-        return null;
+        return "" + numBSSIDSUsed;
     }
 }

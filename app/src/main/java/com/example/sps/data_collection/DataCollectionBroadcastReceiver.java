@@ -43,14 +43,18 @@ public class DataCollectionBroadcastReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         List<ScanResult> scanResults = wifiManager.getScanResults();
         ScanInfo scanInfo = src.getScanInfo();
-        if (scanInfo.isScanSuccessful()) {
-            List<ScanResult> filteredScanResults = new LinkedList<>();
-            for(ScanResult s : scanResults)
-                if(!containsBannedWord(s.BSSID)) filteredScanResults.add(s);
+        if(scanInfo != null) {
+            if (scanInfo.isScanSuccessful()) {
+                List<ScanResult> filteredScanResults = new LinkedList<>();
+                for (ScanResult s : scanResults)
+                    if (!containsBannedWord(s.BSSID)) filteredScanResults.add(s);
 
-            db.insertTableScan(scanInfo.getCellId(),scanInfo.getDirection(), filteredScanResults);
+                db.insertTableScan(scanInfo.getCellId(), scanInfo.getDirection(), filteredScanResults);
+            }
+
+            src.incAndDisplayCounter();
+            src.setScanInfoToNull();
         }
 
-        src.incAndDisplayCounter();
     }
 }

@@ -17,6 +17,13 @@
         android:gravity="center"
         android:orientation="vertical" >
 
+        <Button
+            android:id="@+id/deleteData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.25"
+            android:text="Delete Data" />
+
     <TextView
         android:id="@+id/textStatus"
         android:layout_width="match_parent"

@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.wifi.ScanResult;
+import android.view.View;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 
@@ -19,7 +20,7 @@ import java.util.List;
 public class DatabaseService extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "SPSDataBase.db";
-    public static final int DATABASE_VERSION = 4;
+    public static final int DATABASE_VERSION = 5;
 
 
     public static final String SCAN_TABLE_NAME = "scan";
@@ -136,9 +137,10 @@ public class DatabaseService extends SQLiteOpenHelper {
         List<List<WifiScan>> data = new LinkedList<>();
 
         Cursor cellCursor = dbconnection.rawQuery("SELECT DISTINCT " + SCAN_COLUMN_CELL_ID + " FROM " + SCAN_TABLE_NAME, new String[]{});
-        do{
+        while(cellCursor.moveToNext()) {
             data.add(new LinkedList<WifiScan>());
-        }while(cellCursor.moveToNext());
+        }
+        if(data.size() == 0) return data;
 
         Cursor scanCursor;
         cellCursor.moveToFirst();
@@ -152,9 +154,14 @@ public class DatabaseService extends SQLiteOpenHelper {
                 while (resultsCursor.moveToNext()) {
                     readings.add(new WifiReading(resultsCursor.getString(resultsCursor.getColumnIndex(SCAN_ITEM_COLUMN_BSSID)), resultsCursor.getInt(resultsCursor.getColumnIndex(SCAN_ITEM_COLUMN_RSSI))));
                 }
-                data.get(cellId).add(new WifiScan(readings));
+                resultsCursor.close();
+                data.get(cellId-1).add(new WifiScan(readings));
             }
+            scanCursor.close();
+
         } while(cellCursor.moveToNext());
+        cellCursor.close();
+
         return data;
     }
 
@@ -172,16 +179,22 @@ public class DatabaseService extends SQLiteOpenHelper {
 
     //Get a gaussian from the Gaussians table, for a given cell and bssid
     public NormalDistribution getGaussian(int cellID, String bssid) {
+        Cursor gaussianCursor = null;
+        float mean = 0, stddev = 0;
+        try {
+            gaussianCursor = dbconnection.rawQuery("SELECT * FROM " + GAUSSIANS_TABLE_NAME + " WHERE " + GAUSSIANS_COLUMN_CELL_ID + " = " + cellID + " AND " + GAUSSIANS_COLUMN_BSSID + " = '" + bssid + "'", new String[]{});
 
-        Cursor gaussianCursor = dbconnection.rawQuery("SELECT * FROM " + GAUSSIANS_TABLE_NAME + " WHERE " + GAUSSIANS_COLUMN_CELL_ID + " = " + cellID + " AND " + GAUSSIANS_COLUMN_BSSID + " = '" + bssid + "'", new String[]{});
+            if (gaussianCursor.getCount() == 0) return null;
 
-        if(gaussianCursor.getCount() == 0) return null;
-
-        gaussianCursor.moveToNext();
-        float mean = gaussianCursor.getFloat(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_MEAN));
-        float stddev = gaussianCursor.getFloat(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_STDDEV));
-
-        return new NormalDistribution(mean, stddev+0.01);
+            gaussianCursor.moveToNext();
+            mean = gaussianCursor.getFloat(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_MEAN));
+            stddev = gaussianCursor.getFloat(gaussianCursor.getColumnIndex(GAUSSIANS_COLUMN_STDDEV));
+        }catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            gaussianCursor.close();
+        }
+        return new NormalDistribution(mean, stddev + 0.01);
     }
 
 
@@ -196,8 +209,12 @@ public class DatabaseService extends SQLiteOpenHelper {
             while (resultsCursor.moveToNext()) {
                 readings.add(new WifiReading(resultsCursor.getString(resultsCursor.getColumnIndex(SCAN_ITEM_COLUMN_BSSID)), resultsCursor.getInt(resultsCursor.getColumnIndex(SCAN_ITEM_COLUMN_RSSI))));
             }
+            resultsCursor.close();
+
             data.add(new WifiScan(readings));
         }
+        scanCursor.close();
+
         return data;
     }
 
@@ -205,11 +222,19 @@ public class DatabaseService extends SQLiteOpenHelper {
 
         Cursor cellCursor = dbconnection.rawQuery("SELECT DISTINCT " + SCAN_COLUMN_CELL_ID + " FROM " + SCAN_TABLE_NAME, new String[]{});
 
-        return cellCursor.getCount();
+        int numberOfCells = cellCursor.getCount();
+        cellCursor.close();
+        return numberOfCells;
 
     }
 
     public void clearGaussianTable() {
+        dbconnection.execSQL("DELETE FROM " + GAUSSIANS_TABLE_NAME);
+    }
+
+    public void deleteDB() {
+        dbconnection.execSQL("DELETE FROM " + SCAN_TABLE_NAME);
+        dbconnection.execSQL("DELETE FROM " + SCAN_ITEM_TABLE_NAME);
         dbconnection.execSQL("DELETE FROM " + GAUSSIANS_TABLE_NAME);
     }
 }

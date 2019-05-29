@@ -40,6 +40,7 @@ import com.example.sps.database.DatabaseService;
 import com.example.sps.localization_method.KnnLocalizationMethod;
 import com.example.sps.localization_method.LocalizationMethod;
 import com.example.sps.localization_method.LocalizationAlgorithm;
+import com.example.sps.localization_method.ParallelBayesianLocalizationMethod;
 import com.example.sps.map.Cell;
 import com.example.sps.map.WallPositions;
 
@@ -107,72 +108,12 @@ public class LocateMeActivity extends AppCompatActivity {
     private DatabaseService databaseService;
 
 
-    private void drawMap() {
-        Display display = getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        ImageView canvasView = (ImageView) findViewById(R.id.canvas);
-
-        Bitmap blankBitmap = Bitmap.createBitmap(size.x, size.y,  Bitmap.Config.ARGB_8888);
-
-        canvas = new Canvas(blankBitmap);
-
-        canvasView.setImageBitmap(blankBitmap);
-
-        int width = this.canvas.getWidth();
-
-
-
-        WallPositions walls = new WallPositions();
-
-        float xcale = width / walls.getMaxWidth();
-
-
-        ShapeDrawable rectangle = new ShapeDrawable(new RectShape());
-
-        rectangle.getPaint().setColor(Color.BLACK);
-        rectangle.getPaint().setStyle(Paint.Style.STROKE);
-        rectangle.getPaint().setStrokeWidth(10);
-        List<ShapeDrawable> drawableWalls = new ArrayList<>();
-
-
-        // draw the objects
-        //OffSet from the starting point
-        int xOffSet = 0;
-        int yOffSet = 0;
-
-        int rot = 0;
-
-        //normal
-        if (rot == 0)
-            for (Cell c : walls.getCells()) {
-                rectangle.setBounds(Math.round(c.getLefttWall() * xcale) + xOffSet, Math.round(c.getTopWall() * xcale) + yOffSet,
-                                Math.round(c.getRightWall() * xcale) + xOffSet, Math.round(c.getBottomWall() * xcale) + yOffSet);
-                rectangle.draw(canvas);
-            }
-
-
-        if (rot == 1)
-        for (Cell c : walls.getCells()) {
-            rectangle.setBounds(Math.round(c.getTopWall() * xcale) + xOffSet, Math.round(c.getLefttWall() * xcale) + yOffSet,
-                                Math.round(c.getBottomWall() * xcale) + xOffSet, Math.round(c.getRightWall() * xcale) + yOffSet);
-            rectangle.draw(canvas);
-        }
-
-        //PERFECT
-        xOffSet = 700;
-        if (rot == 2)
-        for (Cell c : walls.getCells()) {
-            rectangle.setBounds( xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
-                                 xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
-            rectangle.draw(canvas);
-        }
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locate_me);
+
+        drawMap();
 
         databaseService = new DatabaseService(this);
         initialBeliefButton = findViewById(R.id.btn_initial_belief);
@@ -287,11 +228,12 @@ public class LocateMeActivity extends AppCompatActivity {
                             }
                         }
                         //when finished, compute location and activity and post to user. unregister accelorometer listener
-
                         sensorManager.unregisterListener(accelerometerListener);
 
 
                         final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData);
+
+                        final int last_cell = getIndexOfLargest(cellProbabilities) + 1;
                         cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
                         for (int i = 0; i < cellProbabilities.length; i++)
                             System.out.println("prob[" + i + "] = " + cellProbabilities[i]);
@@ -318,6 +260,8 @@ public class LocateMeActivity extends AppCompatActivity {
 
                                 // Stuff that updates the UI
                                 setLocalizationText(activity, cell, confidence);
+
+                                highlightLocation(last_cell, cell);
                             }
                         });
                     }
@@ -334,6 +278,40 @@ public class LocateMeActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
+    }
+
+    private void highlightLocation(int last_cell, int current_cell) {
+        WallPositions walls = new WallPositions();
+
+        float xcale = canvas.getWidth() / walls.getMaxWidth();
+        int xOffSet = 700;
+        int yOffSet = 0;
+
+        ShapeDrawable rectangle = new ShapeDrawable(new RectShape());
+
+
+        //Delete highlight in the last cell
+        Cell c = walls.getCells().get(last_cell-1);
+
+        rectangle.getPaint().setColor(Color.BLACK);
+        rectangle.getPaint().setStyle(Paint.Style.STROKE);
+        rectangle.getPaint().setStrokeWidth(10);
+
+        rectangle.setBounds( xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+                xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
+        rectangle.draw(canvas);
+
+        //Highlight current cell
+        c = walls.getCells().get(current_cell-1);
+
+        rectangle.getPaint().setColor(Color.GREEN);
+        rectangle.getPaint().setStrokeWidth(10);
+
+        rectangle.setBounds( xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+                xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
+        rectangle.draw(canvas);
+
 
     }
 
@@ -354,6 +332,8 @@ public class LocateMeActivity extends AppCompatActivity {
         this.cellText.setText("You are at cell " + cell + " with confidence " + Math.round((confidence * 100) * 100) / 100 + "%");
         if (this.localizationMethod instanceof KnnLocalizationMethod)
             miscText.setText("Number of Neighbours: " + ((KnnLocalizationMethod) localizationMethod).getNumNeighbours());
+        if (this.localizationMethod instanceof ParallelBayesianLocalizationMethod)
+            miscText.setText("Number of BSSIDs considered: " + localizationMethod.getMiscInfo());
     }
 
     @Override
@@ -372,7 +352,7 @@ public class LocateMeActivity extends AppCompatActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus){
         super.onWindowFocusChanged(hasFocus);
-        drawMap();
+
 
     }
 
@@ -392,4 +372,65 @@ public class LocateMeActivity extends AppCompatActivity {
     }
 
 
+
+    private void drawMap() {
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+
+        ImageView canvasView = (ImageView) findViewById(R.id.canvas);
+
+        Bitmap blankBitmap = Bitmap.createBitmap(size.x, size.y,  Bitmap.Config.ARGB_8888);
+
+        canvas = new Canvas(blankBitmap);
+        canvasView.setImageBitmap(blankBitmap);
+
+
+        int width = this.canvas.getWidth();
+
+        WallPositions walls = new WallPositions();
+
+        float xcale = width / walls.getMaxWidth();
+
+
+        ShapeDrawable rectangle = new ShapeDrawable(new RectShape());
+
+        rectangle.getPaint().setColor(Color.BLACK);
+        rectangle.getPaint().setStyle(Paint.Style.STROKE);
+        rectangle.getPaint().setStrokeWidth(10);
+
+
+        // draw the objects
+        //OffSet from the starting point
+        int xOffSet = 0;
+        int yOffSet = 0;
+
+        int rot = 2;
+
+        //normal
+        if (rot == 0)
+            for (Cell c : walls.getCells()) {
+                rectangle.setBounds(Math.round(c.getLefttWall() * xcale) + xOffSet, Math.round(c.getTopWall() * xcale) + yOffSet,
+                        Math.round(c.getRightWall() * xcale) + xOffSet, Math.round(c.getBottomWall() * xcale) + yOffSet);
+                rectangle.draw(canvas);
+            }
+
+
+        if (rot == 1)
+            for (Cell c : walls.getCells()) {
+                rectangle.setBounds(Math.round(c.getTopWall() * xcale) + xOffSet, Math.round(c.getLefttWall() * xcale) + yOffSet,
+                        Math.round(c.getBottomWall() * xcale) + xOffSet, Math.round(c.getRightWall() * xcale) + yOffSet);
+                rectangle.draw(canvas);
+            }
+
+        //PERFECT
+        xOffSet = 700;
+        if (rot == 2)
+            for (Cell c : walls.getCells()) {
+                rectangle.setBounds( xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+                        xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
+                rectangle.draw(canvas);
+            }
+    }
 }
