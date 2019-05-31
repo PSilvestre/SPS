@@ -14,6 +14,9 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
 import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorListener;
 import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
@@ -107,13 +110,16 @@ public class LocateMeActivity extends AppCompatActivity {
 
     private DatabaseService databaseService;
 
+    private Sensor rotationSensor;
+
+    private float[] mRotationMatrix;
+    private float[] orientationVals;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locate_me);
 
-        drawMap();
 
         databaseService = new DatabaseService(this);
         initialBeliefButton = findViewById(R.id.btn_initial_belief);
@@ -279,6 +285,66 @@ public class LocateMeActivity extends AppCompatActivity {
             }
         });
 
+        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+
+        sensorManager.registerListener((SensorListener) new RotationListener(),Sensor.TYPE_ROTATION_VECTOR);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            drawMap();
+                            drawArrow();
+                            try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                }
+
+            }
+        }).
+
+                start();
+
+
+    }
+
+    private class RotationListener implements SensorEventListener {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            if (sensorEvent.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+                SensorManager.getRotationMatrixFromVector(mRotationMatrix,
+                        sensorEvent.values);
+                SensorManager
+                        .remapCoordinateSystem(mRotationMatrix,
+                                SensorManager.AXIS_X, SensorManager.AXIS_Z,
+                                mRotationMatrix);
+                SensorManager.getOrientation(mRotationMatrix, orientationVals);
+                System.out.println("x: " + orientationVals[0] + "  y: " + orientationVals[1] + "  z: " + orientationVals[2]);
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+            return;
+        }
+    }
+
+    private void drawArrow() {
+        ShapeDrawable line = new ShapeDrawable( new RectShape());
+
+
+        double stopX = 100 * Math.cos(orientationVals[0]);
+        double stopY = 100 * Math.sin(orientationVals[1]);
+        canvas.drawLine(50,50, (int)Math.round(stopX), (int)Math.round(stopY), new Paint());
+
+
     }
 
     private void highlightLocation(int last_cell, int current_cell) {
@@ -292,23 +358,23 @@ public class LocateMeActivity extends AppCompatActivity {
 
 
         //Delete highlight in the last cell
-        Cell c = walls.getCells().get(last_cell-1);
+        Cell c = walls.getCells().get(last_cell - 1);
 
         rectangle.getPaint().setColor(Color.BLACK);
         rectangle.getPaint().setStyle(Paint.Style.STROKE);
         rectangle.getPaint().setStrokeWidth(10);
 
-        rectangle.setBounds( xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+        rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
                 xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
         rectangle.draw(canvas);
 
         //Highlight current cell
-        c = walls.getCells().get(current_cell-1);
+        c = walls.getCells().get(current_cell - 1);
 
         rectangle.getPaint().setColor(Color.GREEN);
         rectangle.getPaint().setStrokeWidth(10);
 
-        rectangle.setBounds( xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+        rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
                 xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
         rectangle.draw(canvas);
 
@@ -350,7 +416,7 @@ public class LocateMeActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onWindowFocusChanged(boolean hasFocus){
+    public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
 
 
@@ -369,8 +435,8 @@ public class LocateMeActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             scanData = wifiManager.getScanResults();
         }
-    }
 
+    }
 
 
     private void drawMap() {
@@ -381,7 +447,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
         ImageView canvasView = (ImageView) findViewById(R.id.canvas);
 
-        Bitmap blankBitmap = Bitmap.createBitmap(size.x, size.y,  Bitmap.Config.ARGB_8888);
+        Bitmap blankBitmap = Bitmap.createBitmap(size.x, size.y, Bitmap.Config.ARGB_8888);
 
         canvas = new Canvas(blankBitmap);
         canvasView.setImageBitmap(blankBitmap);
@@ -428,7 +494,7 @@ public class LocateMeActivity extends AppCompatActivity {
         xOffSet = 700;
         if (rot == 2)
             for (Cell c : walls.getCells()) {
-                rectangle.setBounds( xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+                rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
                         xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
                 rectangle.draw(canvas);
             }
