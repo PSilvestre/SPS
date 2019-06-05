@@ -12,6 +12,7 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.OvalShape;
 import android.graphics.drawable.shapes.RectShape;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -39,11 +40,15 @@ import com.example.sps.activity_recognizer.ActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
+import com.example.sps.data_structure.PushOutList;
 import com.example.sps.database.DatabaseService;
+import com.example.sps.localization_method.ContinuousLocalization;
 import com.example.sps.localization_method.KnnLocalizationMethod;
 import com.example.sps.localization_method.LocalizationMethod;
 import com.example.sps.localization_method.LocalizationAlgorithm;
 import com.example.sps.localization_method.ParallelBayesianLocalizationMethod;
+import com.example.sps.localization_method.Particle;
+import com.example.sps.localization_method.ParticleFilterLocalization;
 import com.example.sps.map.Cell;
 import com.example.sps.map.WallPositions;
 
@@ -52,6 +57,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import static com.example.sps.localization_method.ParticleFilterLocalization.NUM_PARTICLES;
 
 //TODO: IMPLEMENT way of automatic finding statistics on measurements (auto measure save?)
 
@@ -75,6 +82,9 @@ public class LocateMeActivity extends AppCompatActivity {
 
 
     private Canvas canvas;
+    private int xOffSet = 700;
+    private int yOffSet = 5;
+
 
     private Button initialBeliefButton;
     private Button locateMeButton;
@@ -95,7 +105,7 @@ public class LocateMeActivity extends AppCompatActivity {
     private SensorManager sensorManager;
     private Sensor accelerometer;
 
-    private CopyOnWriteArrayList<FloatTriplet> accelerometerData;
+    private PushOutList<FloatTriplet> accelerometerData;
 
     private List<ScanResult> scanData;
 
@@ -111,9 +121,15 @@ public class LocateMeActivity extends AppCompatActivity {
     private DatabaseService databaseService;
 
     private Sensor rotationSensor;
+    private Sensor stepSensor;
 
-    private float[] mRotationMatrix;
-    private float[] orientationVals;
+    private float mAzimuth = 0;
+
+    private int steps = 0;
+
+    private boolean update = true;
+
+    private CopyOnWriteArrayList<Particle> particles;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -178,7 +194,8 @@ public class LocateMeActivity extends AppCompatActivity {
         activityRecognizer = ActivityAlgorithm.NORMAL.getMethod();
         localizationMethod = LocalizationAlgorithm.KNN_RSSI.getMethod();
 
-        accelerometerData = new CopyOnWriteArrayList<>();
+
+        accelerometerData = new PushOutList<>(NUM_ACC_READINGS);
         accelerometerListener = new AccelerometerListener(accelerometerData);
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -194,84 +211,22 @@ public class LocateMeActivity extends AppCompatActivity {
             }
         });
 
+        // Set the sensor manager
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
         locateMeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
                 cellText.setText("Loading...");
                 actText.setText("");
-                accelerometerData.removeAll(accelerometerData);
                 if (scanData != null)
                     scanData.removeAll(scanData);
 
-                // Set the sensor manager
-                sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-
-                //Start wifi scan
-                wifiManager.startScan();
-
-                // if the default accelerometer exists
-                if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
-                    // set accelerometer
-                    accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-                    // register 'this' as a listener that updates values. Each time a sensor value changes,
-                    // the method 'onSensorChanged()' is called.
-                    sensorManager.registerListener(accelerometerListener, accelerometer,
-                            SensorManager.SENSOR_DELAY_NORMAL);
-                } else {
-                    System.out.println("No accelerometer\n");
-                }
-
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-
-
-                        while (scanData == null || scanData.size() == 0 || accelerometerData.size() < NUM_ACC_READINGS) { //spin while data not ready
-                            try {
-                                Thread.sleep(50);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        //when finished, compute location and activity and post to user. unregister accelorometer listener
-                        sensorManager.unregisterListener(accelerometerListener);
-
-
-                        final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData);
-
-                        final int last_cell = getIndexOfLargest(cellProbabilities) + 1;
-                        cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
-                        for (int i = 0; i < cellProbabilities.length; i++)
-                            System.out.println("prob[" + i + "] = " + cellProbabilities[i]);
-                        final int cell = getIndexOfLargest(cellProbabilities) + 1;
-
-                        if (!currCellText.getText().toString().equals("CurrentCell (for stats)")) {
-                            int txtCell = Integer.parseInt(currCellText.getText().toString());
-
-                            try {
-                                FileWriter fw = new FileWriter(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps/stats.txt", true);
-                                fw.append(txtCell + "," + cell + "," + Math.round(cellProbabilities[cell - 1] * 100) + "," + localizationMethod.getClass().getName() + "," + localizationMethod.getMiscInfo() + "\n");
-                                fw.flush();
-                                fw.close();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        final float confidence = cellProbabilities[cell - 1];
-                        System.out.println("confidence is" + confidence);
-                        runOnUiThread(new Runnable() {
-
-                            @Override
-                            public void run() {
-
-                                // Stuff that updates the UI
-                                setLocalizationText(activity, cell, confidence);
-
-                                highlightLocation(last_cell, cell);
-                            }
-                        });
-                    }
-                }).start();
+                if (!(localizationMethod instanceof ContinuousLocalization))
+                    new Thread(new singleLocalizationRunnable()).start();
+                else
+                    new Thread(new continuousLocalizationRunnable()).start();
 
 
             }
@@ -286,8 +241,13 @@ public class LocateMeActivity extends AppCompatActivity {
         });
 
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        sensorManager.registerListener(new RotationListener(), rotationSensor, 100000);
 
-        sensorManager.registerListener((SensorListener) new RotationListener(),Sensor.TYPE_ROTATION_VECTOR);
+        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
+
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -296,15 +256,35 @@ public class LocateMeActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            drawMap();
-                            drawArrow();
-                            try {
-                                Thread.sleep(500);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
+                            if (update) {
+
+                                drawMap();
+                                if (localizationMethod instanceof ContinuousLocalization){
+                                    drawArrow();
+                                    Paint p = new Paint();
+                                    p.setTextSize(50);
+                                    canvas.drawText("" + steps, 100, 500, p);
+                                    if (steps > 0)
+                                        System.out.println("Steps taken: " + steps);
+                                    if(particles != null) {
+                                        drawParticles();
+                                    }
+
+                                }
+                                update = false;
                             }
+
+
+
+
+                            //steps = 0;
                         }
                     });
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
 
             }
@@ -315,18 +295,155 @@ public class LocateMeActivity extends AppCompatActivity {
 
     }
 
-    private class RotationListener implements SensorEventListener {
+    private class singleLocalizationRunnable implements Runnable {
+        public void run() {
+            update = true;
+
+            //Start wifi scan
+            wifiManager.startScan();
+            accelerometerData.removeAll(accelerometerData);
+            sensorManager.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+
+            while (scanData == null || scanData.size() == 0 || accelerometerData.size() < NUM_ACC_READINGS) { //spin while data not ready
+                try {
+                    System.out.println("SIZE: " + accelerometerData.size());
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            //when finished, compute location and activity and post to user. unregister accelorometer listener
+            sensorManager.unregisterListener(accelerometerListener);
+
+            final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData);
+
+            cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
+            for (int i = 0; i < cellProbabilities.length; i++)
+                System.out.println("prob[" + i + "] = " + cellProbabilities[i]);
+            final int cell = getIndexOfLargest(cellProbabilities) + 1;
+
+            if (!currCellText.getText().toString().equals("CurrentCell (for stats)")) {
+                int txtCell = Integer.parseInt(currCellText.getText().toString());
+
+                try {
+                    FileWriter fw = new FileWriter(Environment.getExternalStorageDirectory().getAbsolutePath() + "/sps/stats.txt", true);
+                    fw.append(txtCell + "," + cell + "," + Math.round(cellProbabilities[cell - 1] * 100) + "," + localizationMethod.getClass().getName() + "," + localizationMethod.getMiscInfo() + "\n");
+                    fw.flush();
+                    fw.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            final float confidence = cellProbabilities[cell - 1];
+            System.out.println("confidence is" + confidence);
+            runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+
+                    // Stuff that updates the UI
+                    setLocalizationText(activity, cell, confidence);
+
+                    highlightLocation(cell);
+                }
+            });
+        }
+    }
+
+
+    private class continuousLocalizationRunnable implements Runnable {
+
+        @Override
+        public void run() {
+
+            update = false;
+            sensorManager.registerListener(new StepListener(), stepSensor, 100000);
+
+            // Spread particles
+            particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
+
+            while (localizationMethod instanceof ContinuousLocalization) {
+                updateParticles();
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+
+            sensorManager.unregisterListener(accelerometerListener);
+
+        }
+    }
+
+    private void updateParticles() {
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        update = true;
+        return;
+    }
+
+    private void drawParticles() {
+
+        int width = this.canvas.getWidth();
+
+        WallPositions walls = new WallPositions();
+
+        float xcale = width / walls.getMaxWidth();
+
+
+        ShapeDrawable drawable = new ShapeDrawable(new OvalShape());
+        drawable.getPaint().setColor(Color.RED);
+
+
+        int radius = 3;
+
+        for (int i = 0; i < NUM_PARTICLES; i++) {
+            drawable.setBounds(xOffSet - Math.round((particles.get(i).getY()) * xcale) - radius,
+                    yOffSet + Math.round((particles.get(i).getX()) * xcale) - radius,
+                    xOffSet - Math.round((particles.get(i).getY()) * xcale) + radius,
+                    yOffSet + Math.round((particles.get(i).getX()) * xcale) + radius);
+            drawable.draw(canvas);
+        }
+        return;
+    }
+
+    private class StepListener implements SensorEventListener {
+
+
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
+            if (sensorEvent.sensor.getType() == Sensor.TYPE_STEP_DETECTOR) {
+                if (sensorEvent.values.length > 0)
+                    steps++;
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+            return;
+        }
+    }
+
+    private class RotationListener implements SensorEventListener {
+
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            float[] orientation = new float[3];
+            float[] rMat = new float[9];
+
             if (sensorEvent.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-                SensorManager.getRotationMatrixFromVector(mRotationMatrix,
-                        sensorEvent.values);
-                SensorManager
-                        .remapCoordinateSystem(mRotationMatrix,
-                                SensorManager.AXIS_X, SensorManager.AXIS_Z,
-                                mRotationMatrix);
-                SensorManager.getOrientation(mRotationMatrix, orientationVals);
-                System.out.println("x: " + orientationVals[0] + "  y: " + orientationVals[1] + "  z: " + orientationVals[2]);
+                // calculate th rotation matrix
+                SensorManager.getRotationMatrixFromVector(rMat, sensorEvent.values);
+                // get the azimuth value (orientation[0]) in degree
+                mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 360) % 360;
+
+                //System.out.println("azi: " + mAzimuth);
+
             }
         }
 
@@ -337,26 +454,24 @@ public class LocateMeActivity extends AppCompatActivity {
     }
 
     private void drawArrow() {
-        ShapeDrawable line = new ShapeDrawable( new RectShape());
 
-
-        double stopX = 100 * Math.cos(orientationVals[0]);
-        double stopY = 100 * Math.sin(orientationVals[1]);
-        canvas.drawLine(50,50, (int)Math.round(stopX), (int)Math.round(stopY), new Paint());
-
-
+        double stopX = 200 * Math.cos(mAzimuth / 180 * Math.PI);
+        double stopY = 200 * Math.sin(mAzimuth / 180 * Math.PI);
+        Paint p = new Paint();
+        p.setStrokeWidth(15);
+        int x_offset = 200;
+        int y_offset = 200;
+        canvas.drawLine(x_offset, y_offset, x_offset + (int) Math.round(stopX), y_offset + (int) Math.round(stopY), p);
     }
 
-    private void highlightLocation(int last_cell, int current_cell) {
+    private void highlightLocation(int current_cell) {
         WallPositions walls = new WallPositions();
 
         float xcale = canvas.getWidth() / walls.getMaxWidth();
-        int xOffSet = 700;
-        int yOffSet = 0;
 
         ShapeDrawable rectangle = new ShapeDrawable(new RectShape());
 
-
+        /*
         //Delete highlight in the last cell
         Cell c = walls.getCells().get(last_cell - 1);
 
@@ -367,9 +482,10 @@ public class LocateMeActivity extends AppCompatActivity {
         rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
                 xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
         rectangle.draw(canvas);
+        */
 
         //Highlight current cell
-        c = walls.getCells().get(current_cell - 1);
+        Cell c = walls.getCells().get(current_cell - 1);
 
         rectangle.getPaint().setColor(Color.GREEN);
         rectangle.getPaint().setStrokeWidth(10);
@@ -468,13 +584,10 @@ public class LocateMeActivity extends AppCompatActivity {
 
 
         // draw the objects
-        //OffSet from the starting point
-        int xOffSet = 0;
-        int yOffSet = 0;
 
         int rot = 2;
 
-        //normal
+        /*normal
         if (rot == 0)
             for (Cell c : walls.getCells()) {
                 rectangle.setBounds(Math.round(c.getLefttWall() * xcale) + xOffSet, Math.round(c.getTopWall() * xcale) + yOffSet,
@@ -489,9 +602,8 @@ public class LocateMeActivity extends AppCompatActivity {
                         Math.round(c.getBottomWall() * xcale) + xOffSet, Math.round(c.getRightWall() * xcale) + yOffSet);
                 rectangle.draw(canvas);
             }
-
+        */
         //PERFECT
-        xOffSet = 700;
         if (rot == 2)
             for (Cell c : walls.getCells()) {
                 rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),

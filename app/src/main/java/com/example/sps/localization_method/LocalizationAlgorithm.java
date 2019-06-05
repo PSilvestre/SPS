@@ -6,8 +6,8 @@ public enum LocalizationAlgorithm {
     KNN_FINGERPRINT(new FingerprintKnnLocalizationMethod()),
     KNN_RSSI(new RSSIFingerprintKnnLocalizationMethod()),
     PARALLEL_BAYESIAN(new ParallelBayesianLocalizationMethod()),
-    SERIAL_BAYESIAN(new SerialBayesianLocalizationMethod());
-
+    SERIAL_BAYESIAN(new SerialBayesianLocalizationMethod()),
+    PARTICLE_FILTER_SIMPLE(new ParticleFilterLocalization());
     private LocalizationMethod method;
 
     LocalizationAlgorithm(LocalizationMethod method) {
