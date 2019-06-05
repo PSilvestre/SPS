@@ -89,6 +89,7 @@ public class LocateMeActivity extends AppCompatActivity {
     private Button initialBeliefButton;
     private Button locateMeButton;
     private Button collectDataButton;
+    private Button takeStepButton;
 
     private TextView cellText;
     private TextView actText;
@@ -141,6 +142,14 @@ public class LocateMeActivity extends AppCompatActivity {
         initialBeliefButton = findViewById(R.id.btn_initial_belief);
         locateMeButton = findViewById(R.id.btn_locate_me);
         collectDataButton = findViewById(R.id.btn_collect_data);
+        takeStepButton = findViewById(R.id.btn_step);
+        takeStepButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                steps ++;
+
+            }
+        });
 
         cellText = findViewById(R.id.cell_guess);
         actText = findViewById(R.id.act_guess);
@@ -263,9 +272,7 @@ public class LocateMeActivity extends AppCompatActivity {
                                     drawArrow();
                                     Paint p = new Paint();
                                     p.setTextSize(50);
-                                    canvas.drawText("" + steps, 100, 500, p);
-                                    if (steps > 0)
-                                        System.out.println("Steps taken: " + steps);
+                                    canvas.drawText("Steps: " + steps, 20, 600, p);
                                     if(particles != null) {
                                         drawParticles();
                                     }
@@ -306,7 +313,6 @@ public class LocateMeActivity extends AppCompatActivity {
 
             while (scanData == null || scanData.size() == 0 || accelerometerData.size() < NUM_ACC_READINGS) { //spin while data not ready
                 try {
-                    System.out.println("SIZE: " + accelerometerData.size());
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -318,8 +324,7 @@ public class LocateMeActivity extends AppCompatActivity {
             final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData);
 
             cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
-            for (int i = 0; i < cellProbabilities.length; i++)
-                System.out.println("prob[" + i + "] = " + cellProbabilities[i]);
+
             final int cell = getIndexOfLargest(cellProbabilities) + 1;
 
             if (!currCellText.getText().toString().equals("CurrentCell (for stats)")) {
@@ -335,7 +340,6 @@ public class LocateMeActivity extends AppCompatActivity {
                 }
             }
             final float confidence = cellProbabilities[cell - 1];
-            System.out.println("confidence is" + confidence);
             runOnUiThread(new Runnable() {
 
                 @Override
@@ -378,11 +382,9 @@ public class LocateMeActivity extends AppCompatActivity {
     }
 
     private void updateParticles() {
-        try {
-            Thread.sleep(50);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        float stepScale = 0.75f;
+        ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, steps*stepScale, particles);
+        steps = 0;
         update = true;
         return;
     }
@@ -442,8 +444,6 @@ public class LocateMeActivity extends AppCompatActivity {
                 // get the azimuth value (orientation[0]) in degree
                 mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 360) % 360;
 
-                //System.out.println("azi: " + mAzimuth);
-
             }
         }
 
@@ -455,12 +455,12 @@ public class LocateMeActivity extends AppCompatActivity {
 
     private void drawArrow() {
 
-        double stopX = 200 * Math.cos(mAzimuth / 180 * Math.PI);
-        double stopY = 200 * Math.sin(mAzimuth / 180 * Math.PI);
+        double stopX = 200 * Math.cos((mAzimuth + 90) / 180 * Math.PI);
+        double stopY = 200 * Math.sin((mAzimuth + 90) / 180 * Math.PI);
         Paint p = new Paint();
         p.setStrokeWidth(15);
         int x_offset = 200;
-        int y_offset = 200;
+        int y_offset = 300;
         canvas.drawLine(x_offset, y_offset, x_offset + (int) Math.round(stopX), y_offset + (int) Math.round(stopY), p);
     }
 

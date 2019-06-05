@@ -39,6 +39,15 @@
         android:layout_above="@id/misc_info"
         />
 
+    <Button
+        android:id="@+id/btn_step"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_toLeftOf="@+id/cell_guess"
+        android:layout_above="@+id/localization_algorithm_spin"
+        android:text="Take Step" />
+
     <TextView
         android:id="@+id/misc_info"
         android:layout_width="wrap_content"

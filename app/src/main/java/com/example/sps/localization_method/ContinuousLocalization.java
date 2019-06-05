@@ -11,4 +11,5 @@ public interface ContinuousLocalization extends LocalizationMethod {
 
     CopyOnWriteArrayList<Particle> spreadParticles(float[] priorBelief);
 
+    void updateParticles(float azi, float distance, CopyOnWriteArrayList<Particle> particles);
 }
