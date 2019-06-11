@@ -2,6 +2,7 @@ package com.example.sps.localization_method;
 
 public class Particle {
     private float x, y;
+    private float last_x, last_y;
     private float weight;
     private int cell;
 
@@ -9,9 +10,21 @@ public class Particle {
     public Particle(float x, float y, float weight, int cell) {
         this.x = x;
         this.y = y;
+        this.last_x = x;
+        this.last_y = y;
         this.weight = weight;
         this.cell = cell;
     }
+
+    public float getLast_x() {
+        return last_x;
+    }
+
+
+    public float getLast_y() {
+        return last_y;
+    }
+
 
     public int getCell() {
         return cell;
@@ -26,6 +39,7 @@ public class Particle {
     }
 
     public void setX(float x) {
+        this.last_x = this.x;
         this.x = x;
     }
 
@@ -34,6 +48,7 @@ public class Particle {
     }
 
     public void setY(float y) {
+        this.last_y = this.y;
         this.y = y;
     }
 

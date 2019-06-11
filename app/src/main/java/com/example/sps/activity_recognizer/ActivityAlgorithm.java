@@ -3,8 +3,9 @@ package com.example.sps.activity_recognizer;
 
 public enum ActivityAlgorithm {
 
-    NORMAL(new StdDevActivityRecognizer()),
-    EXTENDED(new ExtendedActivityRecognizer());
+    NORMAL_STD(new StdDevActivityRecognizer()),
+    NORMAL_AUTOCORR(new AutocorrActivityRecognizer()),
+    EXTENDED_AUTOCORR(new ExtendedActivityRecognizer());
 
 
 

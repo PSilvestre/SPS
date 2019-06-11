@@ -10,19 +10,16 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
-import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.graphics.drawable.shapes.RectShape;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
-import android.hardware.SensorListener;
 import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Environment;
-import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Display;
@@ -40,7 +37,6 @@ import com.example.sps.activity_recognizer.ActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
-import com.example.sps.data_structure.PushOutList;
 import com.example.sps.database.DatabaseService;
 import com.example.sps.localization_method.ContinuousLocalization;
 import com.example.sps.localization_method.KnnLocalizationMethod;
@@ -48,15 +44,16 @@ import com.example.sps.localization_method.LocalizationMethod;
 import com.example.sps.localization_method.LocalizationAlgorithm;
 import com.example.sps.localization_method.ParallelBayesianLocalizationMethod;
 import com.example.sps.localization_method.Particle;
-import com.example.sps.localization_method.ParticleFilterLocalization;
 import com.example.sps.map.Cell;
 import com.example.sps.map.WallPositions;
 
 import java.io.FileWriter;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.example.sps.localization_method.ParticleFilterLocalization.NUM_PARTICLES;
 
@@ -84,7 +81,7 @@ public class LocateMeActivity extends AppCompatActivity {
     private Canvas canvas;
     private int xOffSet = 700;
     private int yOffSet = 5;
-
+    int particleRadius = 4;
 
     private Button initialBeliefButton;
     private Button locateMeButton;
@@ -106,7 +103,7 @@ public class LocateMeActivity extends AppCompatActivity {
     private SensorManager sensorManager;
     private Sensor accelerometer;
 
-    private PushOutList<FloatTriplet> accelerometerData;
+    private LinkedBlockingQueue<FloatTriplet> accelerometerData;
 
     private List<ScanResult> scanData;
 
@@ -122,15 +119,17 @@ public class LocateMeActivity extends AppCompatActivity {
     private DatabaseService databaseService;
 
     private Sensor rotationSensor;
-    private Sensor stepSensor;
 
     private float mAzimuth = 0;
 
-    private int steps = 0;
+    private float distanceCumulative = 0;
+
 
     private boolean update = true;
 
     private CopyOnWriteArrayList<Particle> particles;
+
+    private WallPositions walls = new WallPositions();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,7 +145,7 @@ public class LocateMeActivity extends AppCompatActivity {
         takeStepButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                steps ++;
+                distanceCumulative = 0;
 
             }
         });
@@ -204,7 +203,7 @@ public class LocateMeActivity extends AppCompatActivity {
         localizationMethod = LocalizationAlgorithm.KNN_RSSI.getMethod();
 
 
-        accelerometerData = new PushOutList<>(NUM_ACC_READINGS);
+        accelerometerData = new LinkedBlockingQueue<FloatTriplet>();
         accelerometerListener = new AccelerometerListener(accelerometerData);
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -252,7 +251,6 @@ public class LocateMeActivity extends AppCompatActivity {
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         sensorManager.registerListener(new RotationListener(), rotationSensor, 100000);
 
-        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
 
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
@@ -272,7 +270,7 @@ public class LocateMeActivity extends AppCompatActivity {
                                     drawArrow();
                                     Paint p = new Paint();
                                     p.setTextSize(50);
-                                    canvas.drawText("Steps: " + steps, 20, 600, p);
+                                    canvas.drawText("Distance: " + Math.round(distanceCumulative*100)/100.0f, 20, 600, p);
                                     if(particles != null) {
                                         drawParticles();
                                     }
@@ -282,9 +280,6 @@ public class LocateMeActivity extends AppCompatActivity {
                             }
 
 
-
-
-                            //steps = 0;
                         }
                     });
                     try {
@@ -361,39 +356,98 @@ public class LocateMeActivity extends AppCompatActivity {
         public void run() {
 
             update = false;
-            sensorManager.registerListener(new StepListener(), stepSensor, 100000);
-
+            sensorManager.registerListener(new AccelerometerListener(accelerometerData), accelerometer, 100000);
             // Spread particles
             particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
+            long lastUpdateTime = System.currentTimeMillis();
 
             while (localizationMethod instanceof ContinuousLocalization) {
-                updateParticles();
+
+                updateParticles(lastUpdateTime);
+                lastUpdateTime = System.currentTimeMillis();
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+
             }
-
-
             sensorManager.unregisterListener(accelerometerListener);
 
         }
     }
 
-    private void updateParticles() {
-        float stepScale = 0.75f;
-        ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, steps*stepScale, particles);
-        steps = 0;
+    private void updateParticles(long lastUpdateTime) {
+        float avgWalkingSpeed = 1.4f; // m/s
+        float distance = 0;
+        long currentTime = System.currentTimeMillis();
+        float timePassed = (currentTime - lastUpdateTime) / 1000.0f;
+        final SubjectActivity a = activityRecognizer.recognizeActivity(accelerometerData);
+
+        System.out.println("Time passed: " + timePassed);
+        if(a == SubjectActivity.WALKING) {
+            distance = timePassed * avgWalkingSpeed;
+        }
+        if (a == SubjectActivity.RUNNING)
+            distance = timePassed * avgWalkingSpeed * 2;
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                actText.setText(a.name());
+            }
+        });
+        ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, distance, particles);
+
+
+        collideAndResample(particles);
+
+
+        distanceCumulative += distance;
         update = true;
         return;
+    }
+
+    private void collideAndResample(CopyOnWriteArrayList<Particle> particles) {
+        LinkedList<Particle> deadParticles = new LinkedList<>();
+
+        //collide and erase
+        for (Particle p : particles) {
+            if (walls.getCells().get(p.getCell()).collide(p))
+                deadParticles.add(p);
+        }
+        particles.removeAll(deadParticles);
+
+        boolean cellFound;
+        for (Particle p : particles) {
+            cellFound = false;
+            for(int i = Math.max(0, p.getCell()-3); i < Math.min(walls.getCells().size(), p.getCell() + 3); i++) {
+                if(walls.getCells().get(i).isParticleInside(p)) {
+                    p.setCell(i);
+                    cellFound = true;
+                    break;
+                }
+            }
+            if (!cellFound) {
+                deadParticles.add(p);
+                particles.remove(p);
+            }
+        }
+
+        Random r = new Random(System.currentTimeMillis());
+        for (Particle p : deadParticles) {
+            Particle selected = particles.get(r.nextInt(particles.size()));
+
+            p.setCell(selected.getCell());
+            p.setY(selected.getY());
+            p.setX(selected.getX());
+        }
+        particles.addAll(deadParticles);
     }
 
     private void drawParticles() {
 
         int width = this.canvas.getWidth();
-
-        WallPositions walls = new WallPositions();
 
         float xcale = width / walls.getMaxWidth();
 
@@ -401,34 +455,16 @@ public class LocateMeActivity extends AppCompatActivity {
         ShapeDrawable drawable = new ShapeDrawable(new OvalShape());
         drawable.getPaint().setColor(Color.RED);
 
-
-        int radius = 3;
-
-        for (int i = 0; i < NUM_PARTICLES; i++) {
-            drawable.setBounds(xOffSet - Math.round((particles.get(i).getY()) * xcale) - radius,
-                    yOffSet + Math.round((particles.get(i).getX()) * xcale) - radius,
-                    xOffSet - Math.round((particles.get(i).getY()) * xcale) + radius,
-                    yOffSet + Math.round((particles.get(i).getX()) * xcale) + radius);
+        Iterator<Particle> it = particles.iterator();
+        while (it.hasNext()){
+            Particle p = it.next();
+            drawable.setBounds(xOffSet - Math.round((p.getY()) * xcale) - particleRadius,
+                    yOffSet + Math.round((p.getX()) * xcale) - particleRadius,
+                    xOffSet - Math.round((p.getY()) * xcale) + particleRadius,
+                    yOffSet + Math.round((p.getX()) * xcale) + particleRadius);
             drawable.draw(canvas);
         }
         return;
-    }
-
-    private class StepListener implements SensorEventListener {
-
-
-        @Override
-        public void onSensorChanged(SensorEvent sensorEvent) {
-            if (sensorEvent.sensor.getType() == Sensor.TYPE_STEP_DETECTOR) {
-                if (sensorEvent.values.length > 0)
-                    steps++;
-            }
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int i) {
-            return;
-        }
     }
 
     private class RotationListener implements SensorEventListener {
@@ -465,7 +501,6 @@ public class LocateMeActivity extends AppCompatActivity {
     }
 
     private void highlightLocation(int current_cell) {
-        WallPositions walls = new WallPositions();
 
         float xcale = canvas.getWidth() / walls.getMaxWidth();
 
@@ -479,7 +514,7 @@ public class LocateMeActivity extends AppCompatActivity {
         rectangle.getPaint().setStyle(Paint.Style.STROKE);
         rectangle.getPaint().setStrokeWidth(10);
 
-        rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+        rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLeftWall() * xcale),
                 xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
         rectangle.draw(canvas);
         */
@@ -490,7 +525,7 @@ public class LocateMeActivity extends AppCompatActivity {
         rectangle.getPaint().setColor(Color.GREEN);
         rectangle.getPaint().setStrokeWidth(10);
 
-        rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+        rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLeftWall() * xcale),
                 xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
         rectangle.draw(canvas);
 
@@ -571,7 +606,6 @@ public class LocateMeActivity extends AppCompatActivity {
 
         int width = this.canvas.getWidth();
 
-        WallPositions walls = new WallPositions();
 
         float xcale = width / walls.getMaxWidth();
 
@@ -590,7 +624,7 @@ public class LocateMeActivity extends AppCompatActivity {
         /*normal
         if (rot == 0)
             for (Cell c : walls.getCells()) {
-                rectangle.setBounds(Math.round(c.getLefttWall() * xcale) + xOffSet, Math.round(c.getTopWall() * xcale) + yOffSet,
+                rectangle.setBounds(Math.round(c.getLeftWall() * xcale) + xOffSet, Math.round(c.getTopWall() * xcale) + yOffSet,
                         Math.round(c.getRightWall() * xcale) + xOffSet, Math.round(c.getBottomWall() * xcale) + yOffSet);
                 rectangle.draw(canvas);
             }
@@ -598,7 +632,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
         if (rot == 1)
             for (Cell c : walls.getCells()) {
-                rectangle.setBounds(Math.round(c.getTopWall() * xcale) + xOffSet, Math.round(c.getLefttWall() * xcale) + yOffSet,
+                rectangle.setBounds(Math.round(c.getTopWall() * xcale) + xOffSet, Math.round(c.getLeftWall() * xcale) + yOffSet,
                         Math.round(c.getBottomWall() * xcale) + xOffSet, Math.round(c.getRightWall() * xcale) + yOffSet);
                 rectangle.draw(canvas);
             }
@@ -606,7 +640,7 @@ public class LocateMeActivity extends AppCompatActivity {
         //PERFECT
         if (rot == 2)
             for (Cell c : walls.getCells()) {
-                rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLefttWall() * xcale),
+                rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLeftWall() * xcale),
                         xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
                 rectangle.draw(canvas);
             }

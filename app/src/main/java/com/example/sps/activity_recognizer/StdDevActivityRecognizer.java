@@ -2,11 +2,12 @@ package com.example.sps.activity_recognizer;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
 
 public class StdDevActivityRecognizer implements ActivityRecognizer {
 
     @Override
-    public SubjectActivity recognizeActivity(List<FloatTriplet> sensorData) {
+    public SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData) {
         float[] means =  calculateMeans(sensorData);
         float[] stddevs = calculateStddevs(sensorData, means);
 
@@ -24,7 +25,7 @@ public class StdDevActivityRecognizer implements ActivityRecognizer {
             return SubjectActivity.STANDING;
     }
 
-    public float[] calculateMeans(List<FloatTriplet> sensorData){
+    public float[] calculateMeans(Queue<FloatTriplet> sensorData){
         float[] means = new float[3];
 
         for(FloatTriplet point : sensorData){
@@ -39,7 +40,7 @@ public class StdDevActivityRecognizer implements ActivityRecognizer {
         return means;
     }
 
-    public float[] calculateStddevs(List<FloatTriplet> sensorData, float[] means) {
+    public float[] calculateStddevs(Queue<FloatTriplet> sensorData, float[] means) {
         float[] stddevs = new float[3];
 
         for (FloatTriplet point : sensorData) {

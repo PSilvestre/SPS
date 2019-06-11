@@ -11,7 +11,6 @@ import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -52,7 +51,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
 
             Cell cellO = walls.getCells().get(cell);
 
-            float sampleX = r.nextFloat() * (cellO.getRightWall() - cellO.getLefttWall()) + cellO.getLefttWall();
+            float sampleX = r.nextFloat() * (cellO.getRightWall() - cellO.getLeftWall()) + cellO.getLeftWall();
             float sampleY = r.nextFloat() * (cellO.getBottomWall() - cellO.getTopWall()) + cellO.getTopWall();
 
             Particle particle = new Particle(sampleX, sampleY, 1/NUM_PARTICLES, cell);

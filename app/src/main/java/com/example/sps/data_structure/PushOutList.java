@@ -50,9 +50,10 @@ public class PushOutList<T> implements List<T>, RandomAccess {
 
     @Override
     public boolean add(T t) {
-        if(list.size() >= maxsize)
+        list.add(t);
+        if(list.size() >= maxsize+1)
             list.remove(0);
-        return list.add(t);
+        return true;
     }
 
     @Override

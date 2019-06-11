@@ -10,6 +10,8 @@ import android.view.View;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 
+import com.example.sps.activity_recognizer.FloatTriplet;
+import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.Direction;
 import com.example.sps.data_loader.WifiReading;
 import com.example.sps.data_loader.WifiScan;
@@ -41,6 +43,14 @@ public class DatabaseService extends SQLiteOpenHelper {
     public static final String GAUSSIANS_COLUMN_BSSID = "bssid";
     public static final String GAUSSIANS_COLUMN_MEAN = "mean";
     public static final String GAUSSIANS_COLUMN_STDDEV = "stddev";
+
+    public static final String ACTIVITY_RECORDINGS_TABLE_NAME = "activity_recordings";
+    public static final String ACTIVITY_RECORDINGS_COLUMN_ID = "record_id";
+    public static final String ACTIVITY_RECORDINGS_COLUMN_ACTIVITY = "activity";
+    public static final String ACTIVITY_RECORDINGS_COLUMN_SAMPLE_INDEX = "sample_index";
+    public static final String ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_X = "sample_value_x";
+    public static final String ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Y = "sample_value_y";
+    public static final String ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Z = "sample_value_z";
 
 
     private static final String SQL_CREATE_TABLE_SCAN =
@@ -81,6 +91,18 @@ public class DatabaseService extends SQLiteOpenHelper {
             "DROP TABLE IF EXISTS " + GAUSSIANS_TABLE_NAME;
 
 
+    private static final String SQL_CREATE_TABLE_ACTIVITY =
+            "CREATE TABLE " + ACTIVITY_RECORDINGS_TABLE_NAME + " (" +
+                    ACTIVITY_RECORDINGS_COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    ACTIVITY_RECORDINGS_COLUMN_ACTIVITY + " TEXT NOT NULL," +
+                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_INDEX + " INTEGER NOT NULL," +
+                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_X + " DECIMAL(3,5) NOT NULL," +
+                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Y + " DECIMAL(3,5) NOT NULL," +
+                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Z + " DECIMAL(3,5) NOT NULL" +
+                    ")";
+
+    private static final String SQL_DELETE_TABLE_ACTIVITY_RECORDINGS =
+            "DROP TABLE IF EXISTS " + ACTIVITY_RECORDINGS_TABLE_NAME;
 
     SQLiteDatabase dbconnection;
 
@@ -94,6 +116,7 @@ public class DatabaseService extends SQLiteOpenHelper {
             db.execSQL(SQL_CREATE_TABLE_SCAN_ITEM);
             db.execSQL(SQL_CREATE_TABLE_GAUSSIANS);
             db.execSQL(SQL_CREATE_TABLE_SCAN);
+            db.execSQL(SQL_CREATE_TABLE_ACTIVITY);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -106,6 +129,7 @@ public class DatabaseService extends SQLiteOpenHelper {
         db.execSQL(SQL_DELETE_TABLE_SCAN);
         db.execSQL(SQL_DELETE_TABLE_SCAN_ITEM);
         db.execSQL(SQL_DELETE_TABLE_GAUSSIANS);
+        db.execSQL(SQL_DELETE_TABLE_ACTIVITY_RECORDINGS);
         onCreate(db);
     }
 
@@ -232,9 +256,66 @@ public class DatabaseService extends SQLiteOpenHelper {
         dbconnection.execSQL("DELETE FROM " + GAUSSIANS_TABLE_NAME);
     }
 
-    public void deleteDB() {
+    public void insertRecording(List<FloatTriplet> recording, SubjectActivity activity) {
+
+        for ( int i = 0; i < recording.size(); i++) {
+
+
+            ContentValues sample = new ContentValues();
+
+            sample.put(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_INDEX, i);
+            sample.put(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_X, recording.get(i).getX());
+            sample.put(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Y, recording.get(i).getY());
+            sample.put(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Z, recording.get(i).getZ());
+            sample.put(ACTIVITY_RECORDINGS_COLUMN_ACTIVITY, activity.name());
+
+            dbconnection.insert(ACTIVITY_RECORDINGS_TABLE_NAME, null, sample);
+        }
+    }
+
+    public List<List<FloatTriplet>> getActivityRecordings(SubjectActivity activity) {
+
+        List<List<FloatTriplet>> listOfRecordings = new LinkedList<>();
+
+        Cursor recordingCursor = null;
+        Cursor sampleCursor = null;
+
+        try {
+            recordingCursor = dbconnection.rawQuery("SELECT DISTINCT " + ACTIVITY_RECORDINGS_COLUMN_ID + " FROM " + ACTIVITY_RECORDINGS_TABLE_NAME + " WHERE " + ACTIVITY_RECORDINGS_COLUMN_ACTIVITY + " = '" + activity.name() + "'", new String[]{});
+
+            if (recordingCursor.getCount() == 0) return null;
+
+            while (recordingCursor.moveToNext()) {
+                List<FloatTriplet> recording = new LinkedList<>();
+
+                sampleCursor = dbconnection.rawQuery("SELECT * FROM " + ACTIVITY_RECORDINGS_TABLE_NAME + " WHERE " + ACTIVITY_RECORDINGS_COLUMN_ID + " = " + recordingCursor.getInt(recordingCursor.getColumnIndex(ACTIVITY_RECORDINGS_COLUMN_ID)), new String[]{});
+
+                while (sampleCursor.moveToNext()) {
+                    recording.add(new FloatTriplet((float) sampleCursor.getDouble(sampleCursor.getColumnIndex(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_X)), (float) sampleCursor.getDouble(sampleCursor.getColumnIndex(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Y)), (float) sampleCursor.getDouble(sampleCursor.getColumnIndex(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Z))));
+                }
+                sampleCursor.close();
+                listOfRecordings.add(recording);
+            }
+
+
+        }catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            recordingCursor.close();
+            if (sampleCursor != null)
+                sampleCursor.close();
+        }
+        return listOfRecordings;
+    }
+
+
+    public void deleteScanData() {
         dbconnection.execSQL("DELETE FROM " + SCAN_TABLE_NAME);
         dbconnection.execSQL("DELETE FROM " + SCAN_ITEM_TABLE_NAME);
         dbconnection.execSQL("DELETE FROM " + GAUSSIANS_TABLE_NAME);
+    }
+
+    public void deleteActivityData() {
+        dbconnection.execSQL("DELETE FROM " + ACTIVITY_RECORDINGS_TABLE_NAME);
     }
 }
