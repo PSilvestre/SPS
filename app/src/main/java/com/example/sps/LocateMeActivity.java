@@ -199,7 +199,7 @@ public class LocateMeActivity extends AppCompatActivity {
         });
 
 
-        activityRecognizer = ActivityAlgorithm.NORMAL.getMethod();
+        activityRecognizer = ActivityAlgorithm.NORMAL_STD.getMethod();
         localizationMethod = LocalizationAlgorithm.KNN_RSSI.getMethod();
 
 
@@ -384,7 +384,7 @@ public class LocateMeActivity extends AppCompatActivity {
         float timePassed = (currentTime - lastUpdateTime) / 1000.0f;
         final SubjectActivity a = activityRecognizer.recognizeActivity(accelerometerData);
 
-        System.out.println("Time passed: " + timePassed);
+
         if(a == SubjectActivity.WALKING) {
             distance = timePassed * avgWalkingSpeed;
         }
@@ -413,16 +413,17 @@ public class LocateMeActivity extends AppCompatActivity {
 
         //collide and erase
         for (Particle p : particles) {
-            if (walls.getCells().get(p.getCell()).collide(p))
+            if (walls.getDrawable().get(p.getCell()).collide(p))
                 deadParticles.add(p);
         }
         particles.removeAll(deadParticles);
 
         boolean cellFound;
+        int cell_slack = 3; //check collisions in cells in the proximity (+-cell_slack)
         for (Particle p : particles) {
             cellFound = false;
-            for(int i = Math.max(0, p.getCell()-3); i < Math.min(walls.getCells().size(), p.getCell() + 3); i++) {
-                if(walls.getCells().get(i).isParticleInside(p)) {
+            for(int i = Math.max(0, p.getCell() - cell_slack); i < Math.min(walls.getDrawable().size(), p.getCell() + cell_slack + 1); i++) {
+                if(walls.getDrawable().get(i).isParticleInside(p)) {
                     p.setCell(i);
                     cellFound = true;
                     break;
@@ -548,9 +549,9 @@ public class LocateMeActivity extends AppCompatActivity {
         this.actText.setText("You are " + activity.toString());
         this.cellText.setText("You are at cell " + cell + " with confidence " + Math.round((confidence * 100) * 100) / 100 + "%");
         if (this.localizationMethod instanceof KnnLocalizationMethod)
-            miscText.setText("Number of Neighbours: " + ((KnnLocalizationMethod) localizationMethod).getNumNeighbours());
+            miscText.setText("Neighbours: " + ((KnnLocalizationMethod) localizationMethod).getNumNeighbours());
         if (this.localizationMethod instanceof ParallelBayesianLocalizationMethod)
-            miscText.setText("Number of BSSIDs considered: " + localizationMethod.getMiscInfo());
+            miscText.setText("BSSIDs: " + localizationMethod.getMiscInfo());
     }
 
     @Override
@@ -639,10 +640,12 @@ public class LocateMeActivity extends AppCompatActivity {
         */
         //PERFECT
         if (rot == 2)
-            for (Cell c : walls.getCells()) {
+            for (Cell c : walls.getDrawable()) {
                 rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLeftWall() * xcale),
                         xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
                 rectangle.draw(canvas);
             }
+
+
     }
 }

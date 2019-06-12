@@ -22,7 +22,7 @@ import java.util.List;
 public class DatabaseService extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "SPSDataBase.db";
-    public static final int DATABASE_VERSION = 5;
+    public static final int DATABASE_VERSION = 7;
 
 
     public static final String SCAN_TABLE_NAME = "scan";
@@ -96,9 +96,9 @@ public class DatabaseService extends SQLiteOpenHelper {
                     ACTIVITY_RECORDINGS_COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
                     ACTIVITY_RECORDINGS_COLUMN_ACTIVITY + " TEXT NOT NULL," +
                     ACTIVITY_RECORDINGS_COLUMN_SAMPLE_INDEX + " INTEGER NOT NULL," +
-                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_X + " DECIMAL(3,5) NOT NULL," +
-                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Y + " DECIMAL(3,5) NOT NULL," +
-                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Z + " DECIMAL(3,5) NOT NULL" +
+                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_X + " REAL NOT NULL," +
+                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Y + " REAL NOT NULL," +
+                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Z + " REAL NOT NULL" +
                     ")";
 
     private static final String SQL_DELETE_TABLE_ACTIVITY_RECORDINGS =
