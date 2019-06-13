@@ -38,6 +38,16 @@ public class WallPositions {
 
     }
 
+    public float getTotalArea() {
+        float total = 0;
+        for(Cell c : this.cells)
+            total += c.getAreaOfCell();
+
+        return total;
+    }
+
+
+
 
     public List<Cell> getCells() {
         return cells;

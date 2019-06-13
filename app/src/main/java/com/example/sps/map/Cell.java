@@ -20,6 +20,10 @@ public class Cell {
         this.traversable = traversable; //TODO: the walls should be transversable, not the cells..
     }
 
+    public float getAreaOfCell() {
+        return (getBottomWall() - getTopWall()) * (getRightWall() - getLeftWall());
+    }
+
     public float[] getWalls() {
         return walls;
     }

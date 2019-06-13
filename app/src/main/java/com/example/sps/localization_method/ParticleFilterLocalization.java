@@ -34,6 +34,21 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
 
     @Override
     public CopyOnWriteArrayList<Particle> spreadParticles(float[] priorBelief) {
+        // If prior belief is uniform, distribute by area. Otherwise, by belief.
+        float[] spreadProbabilities = priorBelief;
+        boolean allEqual = true;
+        for(int i = 0; i < priorBelief.length; i++)
+            if(priorBelief[Math.min(0, i-1)] != priorBelief[i]) {
+                allEqual = false;
+                break;
+            }
+        if(allEqual){
+            WallPositions wallPositions = new WallPositions();
+            for(int i = 0; i < priorBelief.length; i++) {
+                spreadProbabilities[i] = wallPositions.getCells().get(i).getAreaOfCell() / wallPositions.getTotalArea();
+            }
+        }
+
         CopyOnWriteArrayList<Particle> particles = new CopyOnWriteArrayList<>();
 
 
@@ -42,7 +57,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         Random r = new Random(System.currentTimeMillis());
         List<Pair<Integer,Double>> itemWeights = new ArrayList<>();
         for (int i = 0; i < priorBelief.length; i++) {
-            itemWeights.add(new Pair(i, new Double(priorBelief[i])));
+            itemWeights.add(new Pair(i, new Double(spreadProbabilities[i])));
         }
 
         EnumeratedDistribution cellProbability = new EnumeratedDistribution(itemWeights);
