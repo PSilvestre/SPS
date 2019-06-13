@@ -55,8 +55,6 @@ import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static com.example.sps.localization_method.ParticleFilterLocalization.NUM_PARTICLES;
-
 //TODO: IMPLEMENT way of automatic finding statistics on measurements (auto measure save?)
 
 
@@ -89,8 +87,7 @@ public class LocateMeActivity extends AppCompatActivity {
     private Button takeStepButton;
 
     private TextView cellText;
-    private TextView actText;
-    private TextView miscText;
+    private TextView actMiscText;
 
     private Spinner locSpin;
     private Spinner actSpin;
@@ -151,8 +148,7 @@ public class LocateMeActivity extends AppCompatActivity {
         });
 
         cellText = findViewById(R.id.cell_guess);
-        actText = findViewById(R.id.act_guess);
-        miscText = findViewById(R.id.misc_info);
+        actMiscText = findViewById(R.id.act_guess);
         currCellText = findViewById(R.id.currCell);
 
         locSpin = findViewById(R.id.localization_algorithm_spin);
@@ -227,7 +223,7 @@ public class LocateMeActivity extends AppCompatActivity {
             public void onClick(View view) {
 
                 cellText.setText("Loading...");
-                actText.setText("");
+                actMiscText.setText("");
                 if (scanData != null)
                     scanData.removeAll(scanData);
 
@@ -394,7 +390,7 @@ public class LocateMeActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                actText.setText(a.name());
+                actMiscText.setText("Activity: " + a.name() + ". "+ localizationMethod.getMiscInfo());
             }
         });
         ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, distance, particles);
@@ -546,12 +542,8 @@ public class LocateMeActivity extends AppCompatActivity {
 
 
     private void setLocalizationText(SubjectActivity activity, int cell, float confidence) {
-        this.actText.setText("You are " + activity.toString());
+        this.actMiscText.setText("Activity: " + activity.name() + ". " + localizationMethod.getMiscInfo());
         this.cellText.setText("You are at cell " + cell + " with confidence " + Math.round((confidence * 100) * 100) / 100 + "%");
-        if (this.localizationMethod instanceof KnnLocalizationMethod)
-            miscText.setText("Neighbours: " + ((KnnLocalizationMethod) localizationMethod).getNumNeighbours());
-        if (this.localizationMethod instanceof ParallelBayesianLocalizationMethod)
-            miscText.setText("BSSIDs: " + localizationMethod.getMiscInfo());
     }
 
     @Override

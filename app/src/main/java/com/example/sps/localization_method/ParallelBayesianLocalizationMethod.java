@@ -82,6 +82,6 @@ public class ParallelBayesianLocalizationMethod implements LocalizationMethod {
 
     @Override
     public String getMiscInfo() {
-        return "" + numBSSIDSUsed;
+        return "BSSIDs considered:" + numBSSIDSUsed;
     }
 }

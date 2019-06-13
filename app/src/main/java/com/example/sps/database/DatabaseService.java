@@ -273,6 +273,8 @@ public class DatabaseService extends SQLiteOpenHelper {
         }
     }
 
+
+
     public List<List<FloatTriplet>> getActivityRecordings(SubjectActivity activity) {
 
         List<List<FloatTriplet>> listOfRecordings = new LinkedList<>();
@@ -317,5 +319,119 @@ public class DatabaseService extends SQLiteOpenHelper {
 
     public void deleteActivityData() {
         dbconnection.execSQL("DELETE FROM " + ACTIVITY_RECORDINGS_TABLE_NAME);
+    }
+
+    public void deleteLastActivity() {
+        Cursor cursor = dbconnection.rawQuery("SELECT " + ACTIVITY_RECORDINGS_COLUMN_ID + " FROM " + ACTIVITY_RECORDINGS_TABLE_NAME, new String[]{});
+
+        cursor.moveToLast();
+
+        int ToDelete = cursor.getInt(cursor.getColumnIndex(ACTIVITY_RECORDINGS_COLUMN_ID));
+        for (int i = 0; i < 20; i++) {
+            dbconnection.execSQL("DELETE FROM " + ACTIVITY_RECORDINGS_TABLE_NAME + " WHERE " + ACTIVITY_RECORDINGS_COLUMN_ID + " = " + (ToDelete-i), new String[]{});
+        }
+        cursor.close();
+    }
+
+    public void deleteLastScan() {
+        Cursor cursor = dbconnection.rawQuery("SELECT " + SCAN_COLUMN_SCAN_ID + " FROM " + SCAN_TABLE_NAME, new String[]{});
+
+        cursor.moveToLast();
+
+        int ToDelete = cursor.getInt(cursor.getColumnIndex(SCAN_COLUMN_SCAN_ID));
+
+        //deletes the scan with that ID
+        dbconnection.execSQL("DELETE FROM " + SCAN_TABLE_NAME + " WHERE " + SCAN_COLUMN_SCAN_ID + " = " + ToDelete, new String[]{});
+
+        //deletes all items from that scan
+        dbconnection.execSQL("DELETE FROM " + SCAN_ITEM_TABLE_NAME + " WHERE " + SCAN_ITEM_COLUMN_SCAN_ID + " = " + ToDelete, new String[]{});
+
+        cursor.close();
+    }
+
+
+    public int getNumberOfScans() {
+        Cursor cursor = dbconnection.rawQuery("SELECT * FROM " + SCAN_TABLE_NAME, new String[]{});
+
+        if (cursor == null || cursor.getCount() == 0) {
+            cursor.close();
+            return 0;
+        }
+
+        if (cursor.isBeforeFirst())
+            cursor.moveToFirst();
+
+        int count = 1;
+
+        while (! cursor.isLast()) {
+            cursor.moveToNext();
+            count++;
+        }
+        cursor.close();
+        return count;
+    }
+
+    public int getNumberOfScansOnCell(int cell) {
+        Cursor cursor = dbconnection.rawQuery("SELECT * FROM " + SCAN_TABLE_NAME + " WHERE " + SCAN_COLUMN_CELL_ID + " = " + cell, new String[]{});
+
+        if (cursor == null || cursor.getCount() == 0) {
+            cursor.close();
+            return 0;
+        }
+
+        if (cursor.isBeforeFirst())
+            cursor.moveToFirst();
+
+        int count = 1;
+
+        while (! cursor.isLast()) {
+            cursor.moveToNext();
+            count++;
+        }
+        cursor.close();
+        return count;
+    }
+
+    public int getNumberOfActivityRecordings() {
+        Cursor cursor = dbconnection.rawQuery("SELECT * FROM " + ACTIVITY_RECORDINGS_TABLE_NAME, new String[]{});
+
+        if (cursor == null || cursor.getCount() == 0) {
+            cursor.close();
+            return 0;
+        }
+
+        if (cursor.isBeforeFirst())
+            cursor.moveToFirst();
+
+        int count = 1;
+
+        while (! cursor.isLast()) {
+            cursor.moveToNext();
+            count++;
+        }
+        cursor.close();
+        return count;
+    }
+
+    public int getNumberOfActivityRecordingsOfActivity(SubjectActivity activity) {
+        Cursor cursor = dbconnection.rawQuery("SELECT * FROM " + ACTIVITY_RECORDINGS_TABLE_NAME + " WHERE " + ACTIVITY_RECORDINGS_COLUMN_ACTIVITY + " = '" + activity.name() + "'", new String[]{});
+
+        if (cursor == null || cursor.getCount() == 0) {
+            cursor.close();
+            return 0;
+        }
+
+
+        if (cursor.isBeforeFirst())
+            cursor.moveToFirst();
+
+        int count = 1;
+
+        while (! cursor.isLast()) {
+            cursor.moveToNext();
+            count++;
+        }
+        cursor.close();
+        return count;
     }
 }

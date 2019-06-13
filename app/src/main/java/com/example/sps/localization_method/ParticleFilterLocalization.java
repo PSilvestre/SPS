@@ -28,7 +28,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
 
     @Override
     public String getMiscInfo() {
-        return null;
+        return "NUM_PARTICLES = " + NUM_PARTICLES;
     }
 
     @Override

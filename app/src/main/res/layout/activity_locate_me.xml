@@ -36,7 +36,7 @@
         android:text="Your current activity is *activity*"
         android:textAlignment="center"
         android:layout_centerHorizontal="true"
-        android:layout_above="@id/misc_info"
+        android:layout_above="@id/localization_algorithm_spin"
         />
 
     <Button
@@ -48,16 +48,6 @@
         android:layout_above="@+id/act_guess"
         android:text="Zero Distance" />
 
-    <TextView
-        android:id="@+id/misc_info"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Miscellaneous Info"
-        android:textAlignment="center"
-        android:layout_centerHorizontal="true"
-        android:layout_above="@+id/localization_algorithm_spin"
-        android:layout_marginBottom="5dp"
-        />
 
 
     <Spinner

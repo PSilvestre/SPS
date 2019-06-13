@@ -27,7 +27,6 @@ import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_loader.WifiScan;
 import com.example.sps.database.DatabaseService;
-import com.example.sps.localization_method.LocalizationAlgorithm;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -45,24 +44,39 @@ public class DataCollectionActivity extends AppCompatActivity {
      */
     private WifiManager wifiManager;
     private SensorManager sensorManager;
-    private Sensor accelemoter;
+    private Sensor accelerometer;
     private ScanInfo scanInfo;
 
     private Button btnScan;
     private Button btnScan10;
-    private Button btnDeleteData;
+    private Button btnDeleteScanData;
+    private Button btnDeleteScanLast;
 
     private Button btnRecordActivity;
     private Button btnDeleteActivityData;
+    private Button btnDeleteActivityLast;
+
+    private Button btnCellPlus;
+    private Button btnCellMinus;
+
     private Spinner actSpin;
 
-    private TextView txtStatus;
-    private TextView txtScans;
-    private EditText txtFile;
+    private TextView txtInfoScan;
+    private TextView txtInfoScanSpec;
+    private TextView txtScanCount;
+    private TextView txtScanStatus;
+
+    private TextView txtInfoActivity;
+    private TextView txtInfoActivitySpec;
+    private TextView txtActivityCount;
+
+
+    private TextView txtScanningCell;
     private BroadcastReceiver receiver;
     private IntentFilter filter;
 
-    private AtomicInteger counter;
+    private AtomicInteger scanCounter;
+    private AtomicInteger actRecordCounter;
 
     private DatabaseService dbConnection;
 
@@ -82,28 +96,49 @@ public class DataCollectionActivity extends AppCompatActivity {
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        accelemoter = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         dbConnection = new DatabaseService(this);
 
+
+        /////////////////////////////////BUTTONS//////////////////////////
+
         btnScan = (Button) findViewById(R.id.buttonScan);
         btnScan10 = (Button) findViewById(R.id.buttonScanx10);
-        btnDeleteData = (Button) findViewById(R.id.deleteData);
+        btnDeleteScanData = (Button) findViewById(R.id.deleteScanData);
+        btnDeleteScanLast = (Button) findViewById(R.id.deleteLastScan);
+
         btnRecordActivity = (Button) findViewById(R.id.activityRecorderButton);
         btnDeleteActivityData = (Button) findViewById(R.id.deleteActivityData);
+        btnDeleteActivityLast = (Button) findViewById(R.id.deleteLastActivity);
+
+        btnCellPlus = (Button) findViewById(R.id.plusCell);
+        btnCellMinus = (Button) findViewById(R.id.minusCell);
+
+        ///////////////////////////////TEXTS////////////////////////////
+
+        txtInfoScan = (TextView) findViewById(R.id.infoScan);
+        txtInfoScanSpec = (TextView) findViewById(R.id.infoScanSpec);
+        txtScanCount = (TextView) findViewById(R.id.textScans);
+        txtScanStatus = (TextView) findViewById(R.id.textStatusScan);
+
+        txtInfoActivity = (TextView) findViewById(R.id.infoActivity);
+        txtInfoActivitySpec = (TextView) findViewById(R.id.infoActivitySpec);
+        txtActivityCount = (TextView) findViewById(R.id.textActivityCount);
+
+        ///////////////////Text box & Spinner ///////////////////////////
+        txtScanningCell = (TextView) findViewById(R.id.textScanningCell);
 
         actSpin = (Spinner) findViewById(R.id.activity_detection_spin);
 
+        //////////////////////////////////////////////////////////////////
 
-        txtStatus = (TextView) findViewById(R.id.textStatus);
-        txtScans = (TextView) findViewById(R.id.textScans);
-        txtFile = (EditText) findViewById(R.id.textFile);
         receiver = new DataCollectionBroadcastReceiver(wifiManager, this, dbConnection);
         filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         this.registerReceiver(receiver, filter);
 
-        counter = new AtomicInteger(0);
-        txtFile.addTextChangedListener(new TextWatcher() {
+        scanCounter = new AtomicInteger(0);
+        txtScanningCell.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 
@@ -111,25 +146,27 @@ public class DataCollectionActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                counter.set(0);
+                scanCounter.set(0);
             }
 
             @Override
             public void afterTextChanged(Editable editable) {
-
             }
         });
+
 
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //TODO Fix Direction (with android magnetometer)
-                scanInfo = new ScanInfo(wifiManager.startScan(), Integer.parseInt(txtFile.getText().toString()), Direction.EAST);
-                if (scanInfo.isScanSuccessful())
-                    txtStatus.setText("Reading Status: Valid Scan");
-                else
-                    txtStatus.setText("Reading Status: INVALID Scan");
+                scanInfo = new ScanInfo(wifiManager.startScan(), Integer.parseInt(txtScanningCell.getText().toString()), Direction.EAST);
+
+                updateTxtScanStatus(scanInfo.isScanSuccessful());
                 updateGaussians = 1;
+
+                //update info texts
+                updateTxtInfoScan();
+                updateTxtInfoScanSpec();
             }
         });
 
@@ -140,11 +177,8 @@ public class DataCollectionActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         for (int i = 0; i < 10; i++) {
-                            scanInfo = new ScanInfo(wifiManager.startScan(), Integer.parseInt(txtFile.getText().toString()), Direction.EAST);
-                            if (scanInfo.isScanSuccessful())
-                                txtStatus.setText("Reading Status: Valid Scan");
-                            else
-                                txtStatus.setText("Reading Status: INVALID Scan");
+                            scanInfo = new ScanInfo(wifiManager.startScan(), Integer.parseInt(txtScanningCell.getText().toString()), Direction.EAST);
+                            updateTxtScanStatus(scanInfo.isScanSuccessful());
                             while(scanInfo != null){
                             try {
                                 Thread.sleep(50);
@@ -156,13 +190,20 @@ public class DataCollectionActivity extends AppCompatActivity {
                     }
                 }).start();
                 updateGaussians = 1;
+
+                //update info texts
+                updateTxtInfoScan();
+                updateTxtInfoScanSpec();
+
             }
         });
 
-        btnDeleteData.setOnClickListener(new View.OnClickListener() {
+        btnDeleteScanData.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 dbConnection.deleteScanData();
+                updateTxtInfoScan();
+                updateTxtInfoScanSpec();
             }
         });
 
@@ -170,6 +211,68 @@ public class DataCollectionActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 dbConnection.deleteActivityData();
+                updateTxtInfoAct();
+                updateTxtInfoActSpec();
+            }
+        });
+
+        btnDeleteActivityLast.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dbConnection.deleteLastActivity();
+                updateTxtInfoAct();
+                updateTxtInfoActSpec();
+            }
+        });
+
+        btnDeleteScanLast.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dbConnection.deleteLastScan();
+                updateTxtInfoScan();
+                updateTxtInfoScanSpec();
+            }
+        });
+
+        btnCellPlus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String txt = txtScanningCell.getText().toString();
+
+                if (txt.equals("scanningCell"))
+                    txtScanningCell.setText("1");
+                else{
+                    Integer i = Integer.parseInt(txt);
+                    Integer a = dbConnection.getNumberOfCells();
+                    i ++;
+                    if (i > a)
+                        txtScanningCell.setText("1");
+                    else
+                        txtScanningCell.setText(i.toString());
+                }
+                updateTxtInfoScanSpec();
+            }
+        });
+
+        btnCellMinus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String txt = txtScanningCell.getText().toString();
+
+                if (txt.equals("scanningCell")) {
+                    Integer a = dbConnection.getNumberOfCells();
+                    txtScanningCell.setText(a.toString());
+                } else {
+                    Integer i = Integer.parseInt(txt);
+                    if (i > 1) {
+                        i --;
+                        txtScanningCell.setText(i.toString());
+                    } else {
+                        Integer a = dbConnection.getNumberOfCells();
+                        txtScanningCell.setText(a.toString());
+                    }
+                }
+                updateTxtInfoScanSpec();
             }
         });
 
@@ -177,13 +280,20 @@ public class DataCollectionActivity extends AppCompatActivity {
         adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
         actSpin.setAdapter(adapter);
         selectedActivity = SubjectActivity.STANDING;
+        updateTxtInfoActSpec();
+        actRecordCounter = new AtomicInteger(0);
         //Set Listener for Localization Spinner changes
         actSpin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                actRecordCounter.set(0);
+
+
                 selectedActivity = ((SubjectActivity) adapterView.getItemAtPosition(i));
 
+                updateTxtInfoActSpec();
+                updateActRecCounter();
             }
 
             @Override
@@ -191,6 +301,7 @@ public class DataCollectionActivity extends AppCompatActivity {
 
             }
         });
+
 
         btnRecordActivity.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -200,7 +311,7 @@ public class DataCollectionActivity extends AppCompatActivity {
                     public void run() {
                         Queue < FloatTriplet > data = new LinkedList<>();
                         SensorEventListener listener = new AccelerometerListener(data);
-                        sensorManager.registerListener(listener, accelemoter, 50000);
+                        sensorManager.registerListener(listener, accelerometer, 50000);
                         while(data.size() < NUM_ACC_READINGS ){
                             try {
                                 Thread.sleep(50);
@@ -212,14 +323,16 @@ public class DataCollectionActivity extends AppCompatActivity {
 
                         dbConnection.insertRecording( ((LinkedList<FloatTriplet>) data).subList(0, NUM_ACC_READINGS),selectedActivity);
 
+
+                        incActRecCounter();
+                        updateActRecCounter();
+                        updateTxtInfoAct();
+                        updateTxtInfoActSpec();
                     }
                 }).start();
-
             }
         });
-
     }
-
 
     private void updateGaussians(){
 
@@ -249,6 +362,8 @@ public class DataCollectionActivity extends AppCompatActivity {
         super.onResume();
         this.registerReceiver(receiver, filter);
         updateGaussians = 0;
+        updateTxtInfoScan();
+        updateTxtInfoAct();
     }
 
 
@@ -260,11 +375,51 @@ public class DataCollectionActivity extends AppCompatActivity {
         this.scanInfo = null;
     }
 
-    public String getFileName() {
-        return txtFile.getText().toString();
+
+    public void incScanCounter () {
+        scanCounter.set(scanCounter.get() + 1);
     }
 
-    public void incAndDisplayCounter(){
-        txtScans.setText("Number of Scans: "+ counter.addAndGet(1));
+    public void incActRecCounter () {
+        actRecordCounter.set(actRecordCounter.get() + 1);
     }
+
+    public void updateScanCounter(){
+        txtScanCount.setText(getString(R.string.scanCount) + scanCounter.get());
+    }
+
+    public void updateActRecCounter(){
+        txtActivityCount.setText(getString(R.string.scanCount) + scanCounter.get());
+    }
+
+
+    private void updateTxtScanStatus(boolean scanSuccessful) {
+        if (scanSuccessful)
+            txtScanStatus.setText(getString(R.string.scanStat) + "@string/statusOk");
+        else
+            txtScanStatus.setText(getString(R.string.scanStat) + "@string/statusNotOk");
+    }
+
+
+
+    public void updateTxtInfoScan() {
+        Integer aux = dbConnection.getNumberOfScans();
+        txtInfoScan.setText(getString(R.string.totNumScans) + aux.toString());
+    }
+
+    public void updateTxtInfoScanSpec() {
+        Integer aux = dbConnection.getNumberOfScansOnCell(Integer.parseInt(txtScanningCell.getText().toString()));
+        txtInfoScanSpec.setText(getString(R.string.scanSpec) + aux.toString());
+    }
+
+    public void updateTxtInfoAct(){
+        Integer aux = dbConnection.getNumberOfActivityRecordings();
+        txtInfoActivity.setText(getString(R.string.totNumActRec)+ aux.toString());
+    }
+
+    public void updateTxtInfoActSpec() {
+        Integer aux = dbConnection.getNumberOfActivityRecordingsOfActivity(selectedActivity);
+        txtInfoActivitySpec.setText(getString(R.string.actSpec) + aux.toString());
+    }
+
 }
