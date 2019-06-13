@@ -46,6 +46,8 @@ import com.example.sps.localization_method.Particle;
 import com.example.sps.map.Cell;
 import com.example.sps.map.WallPositions;
 
+import org.apache.commons.math3.distribution.NormalDistribution;
+
 import java.io.FileWriter;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -74,6 +76,11 @@ public class LocateMeActivity extends AppCompatActivity {
 
     public static final int NUM_ACC_READINGS = 20;
 
+    public static final int DRAW_FRAMES_PER_SECOND = 4;
+    public static final int SKIP_TICKS_DRAW = Math.round(1000.0f / DRAW_FRAMES_PER_SECOND);
+
+    public static final int UPDATE_FRAMES_PER_SECOND = 8;
+    public static final int SKIP_TICKS_UPDATE = Math.round(1000.0f / UPDATE_FRAMES_PER_SECOND);
 
     private Canvas canvas;
     private int xOffSet = 700;
@@ -126,6 +133,8 @@ public class LocateMeActivity extends AppCompatActivity {
     private CopyOnWriteArrayList<Particle> particles;
 
     private WallPositions walls = new WallPositions();
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -253,6 +262,8 @@ public class LocateMeActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                long nextTick = System.currentTimeMillis();
+                long sleepTime = 0;
                 while (true) {
 
                     runOnUiThread(new Runnable() {
@@ -277,10 +288,14 @@ public class LocateMeActivity extends AppCompatActivity {
 
                         }
                     });
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    nextTick += SKIP_TICKS_DRAW;
+                    sleepTime = nextTick -System.currentTimeMillis();
+                    if(sleepTime > 0) {
+                        try {
+                            Thread.sleep(sleepTime);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
 
@@ -357,14 +372,23 @@ public class LocateMeActivity extends AppCompatActivity {
             long lastUpdateTime = System.currentTimeMillis();
             new CountParticleWeightsThread(particles, walls, getLocateMeActivity()).start();
 
+            long nextTick = System.currentTimeMillis();
+            long sleepTime = 0;
+
             while (localizationMethod instanceof ContinuousLocalization) {
 
                 updateParticles(lastUpdateTime);
                 lastUpdateTime = System.currentTimeMillis();
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+
+
+                nextTick += SKIP_TICKS_UPDATE;
+                sleepTime = nextTick -System.currentTimeMillis();
+                if(sleepTime > 0) {
+                    try {
+                        Thread.sleep(sleepTime);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
 
             }
@@ -415,7 +439,7 @@ public class LocateMeActivity extends AppCompatActivity {
         particles.removeAll(deadParticles);
 
         boolean cellFound;
-        int cell_slack = 3; //check collisions in cells in the proximity (+-cell_slack)
+        int cell_slack = 4; //check collisions in cells in the proximity (+-cell_slack)
         for (Particle p : particles) {
             cellFound = false;
             for(int i = Math.max(0, p.getCell() - cell_slack); i < Math.min(walls.getCells().size(), p.getCell() + cell_slack + 1); i++) {
@@ -427,17 +451,20 @@ public class LocateMeActivity extends AppCompatActivity {
             }
             if (!cellFound) {
                 deadParticles.add(p);
-                particles.remove(p);
             }
         }
+        particles.removeAll(deadParticles);
 
         Random r = new Random(System.currentTimeMillis());
         for (Particle p : deadParticles) {
             Particle selected = particles.get(r.nextInt(particles.size()));
 
             p.setCell(selected.getCell());
-            p.setY(selected.getY());
-            p.setX(selected.getX());
+
+            NormalDistribution resampleNoise = new NormalDistribution(0, 3);
+
+            p.setY((float) (selected.getY() + resampleNoise.sample()));
+            p.setX((float) (selected.getX()+ resampleNoise.sample()));
         }
         particles.addAll(deadParticles);
     }
@@ -475,7 +502,7 @@ public class LocateMeActivity extends AppCompatActivity {
                 // calculate th rotation matrix
                 SensorManager.getRotationMatrixFromVector(rMat, sensorEvent.values);
                 // get the azimuth value (orientation[0]) in degree
-                mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 360) % 360;
+                mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 180) % 360;
 
             }
         }
