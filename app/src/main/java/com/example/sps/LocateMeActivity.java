@@ -38,11 +38,10 @@ import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
 import com.example.sps.database.DatabaseService;
+import com.example.sps.localization_method.CountParticleWeightsThread;
 import com.example.sps.localization_method.ContinuousLocalization;
-import com.example.sps.localization_method.KnnLocalizationMethod;
 import com.example.sps.localization_method.LocalizationMethod;
 import com.example.sps.localization_method.LocalizationAlgorithm;
-import com.example.sps.localization_method.ParallelBayesianLocalizationMethod;
 import com.example.sps.localization_method.Particle;
 import com.example.sps.map.Cell;
 import com.example.sps.map.WallPositions;
@@ -229,9 +228,9 @@ public class LocateMeActivity extends AppCompatActivity {
 
                 if (!(localizationMethod instanceof ContinuousLocalization))
                     new Thread(new singleLocalizationRunnable()).start();
-                else
+                else {
                     new Thread(new continuousLocalizationRunnable()).start();
-
+                }
 
             }
         });
@@ -356,6 +355,7 @@ public class LocateMeActivity extends AppCompatActivity {
             // Spread particles
             particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
             long lastUpdateTime = System.currentTimeMillis();
+            new CountParticleWeightsThread(particles, walls, getLocateMeActivity()).start();
 
             while (localizationMethod instanceof ContinuousLocalization) {
 
@@ -546,6 +546,11 @@ public class LocateMeActivity extends AppCompatActivity {
         this.cellText.setText("You are at cell " + cell + " with confidence " + Math.round((confidence * 100) * 100) / 100 + "%");
     }
 
+
+    public void setLocationTextForParticleFilter(int cell) {
+        this.cellText.setText("You are most likely at cell " + cell);
+    }
+
     @Override
     public void onPause() {
         super.onPause();
@@ -639,5 +644,13 @@ public class LocateMeActivity extends AppCompatActivity {
             }
 
 
+    }
+
+    public LocalizationMethod getLocalizationMethod() {
+        return localizationMethod;
+    }
+
+    public LocateMeActivity getLocateMeActivity(){
+        return this;
     }
 }
