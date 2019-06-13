@@ -11,6 +11,7 @@ import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -54,7 +55,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
             float sampleX = r.nextFloat() * (cellO.getRightWall() - cellO.getLeftWall()) + cellO.getLeftWall();
             float sampleY = r.nextFloat() * (cellO.getBottomWall() - cellO.getTopWall()) + cellO.getTopWall();
 
-            Particle particle = new Particle(sampleX, sampleY, 1/NUM_PARTICLES, cell);
+            Particle particle = new Particle(sampleX, sampleY, 1.0f/NUM_PARTICLES, cell);
 
             particles.add(particle);
         }
@@ -70,11 +71,13 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         float norm;
         float angle;
         float toRadians = (float) (1.0f / 180 * Math.PI);
-        for (int i = 0; i < particles.size(); i++) {
+        Iterator<Particle> particleIterator = particles.iterator();
+        while (particleIterator.hasNext()) {
+            Particle p = particleIterator.next();
             norm = (float) (distance + noiseDistance.sample());
             angle = (float) (azi + noiseDegrees.sample());
-            particles.get(i).setX((float) (particles.get(i).getX() + norm * Math.cos(angle * toRadians)));
-            particles.get(i).setY((float) (particles.get(i).getY() + norm * Math.sin(angle * toRadians)));
+            p.setX((float) (p.getX() + norm * Math.cos(angle * toRadians)));
+            p.setY((float) (p.getY() + norm * Math.sin(angle * toRadians)));
         }
     }
 }

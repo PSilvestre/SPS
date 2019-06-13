@@ -36,21 +36,27 @@ public class CountParticleWeightsThread extends Thread {
             int index;
 
             for (Particle p : particles) {
-                index = p.getCell() - 1;
+                index = p.getCell();
                 weightSumPerCell.set(index, weightSumPerCell.get(index) + p.getWeight());
             }
 
 
             int indexOfHighest = 0;
             float valueOfMax = weightSumPerCell.get(0);
-            for (int i = 0; i < weightSumPerCell.size(); i++) {
+            for (int i = 1; i < weightSumPerCell.size(); i++) {
+                System.out.println("weights at i: " + weightSumPerCell.get(i));
                 if (valueOfMax < weightSumPerCell.get(i)) {
                     indexOfHighest = i;
                     valueOfMax = weightSumPerCell.get(i);
                 }
             }
-
-            src.setLocationTextForParticleFilter(indexOfHighest + 1);
+            final int decision = indexOfHighest;
+            src.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    src.setLocationTextForParticleFilter(decision+ 1);
+                }
+            });
 
             try {
                 Thread.sleep(250);
@@ -58,6 +64,7 @@ public class CountParticleWeightsThread extends Thread {
                 e.printStackTrace();
             }
         }
+        System.out.println("Just got out, too soon though. Decision: ");
     }
 
 }

@@ -418,7 +418,7 @@ public class LocateMeActivity extends AppCompatActivity {
         int cell_slack = 3; //check collisions in cells in the proximity (+-cell_slack)
         for (Particle p : particles) {
             cellFound = false;
-            for(int i = Math.max(0, p.getCell() - cell_slack); i < Math.min(walls.getDrawable().size(), p.getCell() + cell_slack + 1); i++) {
+            for(int i = Math.max(0, p.getCell() - cell_slack); i < Math.min(walls.getCells().size(), p.getCell() + cell_slack + 1); i++) {
                 if(walls.getDrawable().get(i).isParticleInside(p)) {
                     p.setCell(i);
                     cellFound = true;
