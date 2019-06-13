@@ -79,7 +79,7 @@ public class LocateMeActivity extends AppCompatActivity {
     public static final int DRAW_FRAMES_PER_SECOND = 10;
     public static final int SKIP_TICKS_DRAW = Math.round(1000.0f / DRAW_FRAMES_PER_SECOND);
 
-    public static final int UPDATE_FRAMES_PER_SECOND = 20;
+    public static final int UPDATE_FRAMES_PER_SECOND = 40;
     public static final int SKIP_TICKS_UPDATE = Math.round(1000.0f / UPDATE_FRAMES_PER_SECOND);
 
     private Canvas canvas;
@@ -405,7 +405,6 @@ public class LocateMeActivity extends AppCompatActivity {
         SubjectActivity a = SubjectActivity.LOADING;
         if (accelerometerData.size() == NUM_ACC_READINGS)
             a = activityRecognizer.recognizeActivity(accelerometerData);
-        System.out.println("activityRecognizer name is: " + activityRecognizer.getClass().toString());
         final SubjectActivity b = a;
 
         if(a == SubjectActivity.WALKING) {

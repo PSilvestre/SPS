@@ -26,7 +26,10 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
         int maxDelay = 100;
         int minDelay = 40;
 
-        List<FloatTriplet> sensorDataList = new ArrayList<>(sensorData);
+        List<FloatTriplet> asensorDataList = new ArrayList<>(sensorData);
+        List<FloatTriplet> sensorDataList = new ArrayList<>();
+        for(FloatTriplet f : asensorDataList)
+            sensorDataList.add(0,f);
 
 
         List<FloatTriplet> array1 = new ArrayList<>();
@@ -47,7 +50,7 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
             mean2 = Utils.Mean(array2);
             stdDev1 = Utils.StdDeviation(array1, mean1);
             stdDev2 = Utils.StdDeviation(array2, mean2);
-
+            float dotsum = 0;
             for (int k = 0; k < delay-1; k++) {
                 sum.setX(sum.getX() + ((array1.get(k).getX() - mean1.getX()) * (array2.get(k).getX() - mean2.getX())));
                 sum.setY(sum.getY() + ((array1.get(k).getY() - mean1.getY()) * (array2.get(k).getY() - mean2.getY())));
@@ -56,11 +59,13 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
             sum.setX(sum.getX() / (delay * stdDev1.getX() * stdDev2.getX()));
             sum.setY(sum.getY() / (delay * stdDev1.getY() * stdDev2.getY()));
             sum.setZ(sum.getZ() / (delay * stdDev1.getZ() * stdDev2.getZ()));
-            System.out.println("X: " + sum.getX() + "Y: " + sum.getY() + "Z: " + sum.getZ());
             correlationForEachDelay.add(sum);
 
-            if( sum.getZ() > 0.7 && sum.getX() > 0.5 && sum.getY() > 0.5 )
+            if( sum.getZ() > 0.7 && sum.getX() > 0.5 && sum.getY() > 0.6 ) {
+                System.out.println("DELAY:" + delay);
+                System.out.println("X: " + sum.getX() + " Y: " + sum.getY() + " Z: " + sum.getZ() + "\n");
                 return SubjectActivity.WALKING;
+            }
         }
 
         return activity;
