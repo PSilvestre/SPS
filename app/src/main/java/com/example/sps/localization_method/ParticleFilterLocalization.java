@@ -20,6 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class ParticleFilterLocalization implements ContinuousLocalization {
 
     public static final int NUM_PARTICLES = 1000;
+    private static final float RESAMPLING_NOISE_STDDEV = 0.5f;
     private NormalDistribution noiseDegrees = new NormalDistribution(0, 22.5);
     private NormalDistribution noiseDistance;
 
@@ -39,7 +40,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         float[] spreadProbabilities = priorBelief;
         boolean allEqual = true;
         for(int i = 0; i < priorBelief.length; i++)
-            if(priorBelief[Math.min(0, i-1)] != priorBelief[i]) {
+            if(priorBelief[Math.max(0, i-1)] != priorBelief[i]) {
                 allEqual = false;
                 break;
             }
@@ -114,7 +115,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         int cell_slack = 4; //check collisions in cells in the proximity (+-cell_slack)
         for (Particle p : particles) {
             cellFound = false;
-            for(int i = Math.max(0, p.getCell() - cell_slack); i < Math.min(walls.getCells().size(), p.getCell() + cell_slack + 1); i++) {
+            for(int i = Math.max(0, p.getCell() - cell_slack); i < Math.min(walls.getDrawable().size(), p.getCell() + cell_slack + 1); i++) {
                 if(walls.getDrawable().get(i).isParticleInside(p)) {
                     p.setCell(i);
                     cellFound = true;
@@ -141,11 +142,12 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
 
         for (Particle p : deadParticles) {
             p.resetTimeAlive();
+            p.setWeight(((float) p.getTimeAlive()) / totalTimeAlive);
             do {
                 Particle selected = distribution.sample();
 
 
-                NormalDistribution resampleNoise = new NormalDistribution(0, 3);
+                NormalDistribution resampleNoise = new NormalDistribution(0, RESAMPLING_NOISE_STDDEV);
 
                 p.setY((float) (selected.getY() + resampleNoise.sample()));
                 p.setX((float) (selected.getX() + resampleNoise.sample()));

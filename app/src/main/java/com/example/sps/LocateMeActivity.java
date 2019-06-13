@@ -74,12 +74,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class LocateMeActivity extends AppCompatActivity {
 
-    public static final int NUM_ACC_READINGS = 20;
+    public static final int NUM_ACC_READINGS = 200;
 
-    public static final int DRAW_FRAMES_PER_SECOND = 4;
+    public static final int DRAW_FRAMES_PER_SECOND = 10;
     public static final int SKIP_TICKS_DRAW = Math.round(1000.0f / DRAW_FRAMES_PER_SECOND);
 
-    public static final int UPDATE_FRAMES_PER_SECOND = 8;
+    public static final int UPDATE_FRAMES_PER_SECOND = 20;
     public static final int SKIP_TICKS_UPDATE = Math.round(1000.0f / UPDATE_FRAMES_PER_SECOND);
 
     private Canvas canvas;
@@ -366,7 +366,7 @@ public class LocateMeActivity extends AppCompatActivity {
         public void run() {
 
             update = false;
-            sensorManager.registerListener(new AccelerometerListener(accelerometerData), accelerometer, 100000);
+            sensorManager.registerListener(new AccelerometerListener(accelerometerData), accelerometer, 20000);
             // Spread particles
             particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
             long lastUpdateTime = System.currentTimeMillis();
@@ -402,8 +402,11 @@ public class LocateMeActivity extends AppCompatActivity {
         float distance = 0;
         long currentTime = System.currentTimeMillis();
         float timePassed = (currentTime - lastUpdateTime) / 1000.0f;
-        final SubjectActivity a = activityRecognizer.recognizeActivity(accelerometerData);
-
+        SubjectActivity a = SubjectActivity.LOADING;
+        if (accelerometerData.size() == NUM_ACC_READINGS)
+            a = activityRecognizer.recognizeActivity(accelerometerData);
+        System.out.println("activityRecognizer name is: " + activityRecognizer.getClass().toString());
+        final SubjectActivity b = a;
 
         if(a == SubjectActivity.WALKING) {
             distance = timePassed * avgWalkingSpeed;
@@ -414,7 +417,7 @@ public class LocateMeActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                actMiscText.setText("Activity: " + a.name() + ". "+ localizationMethod.getMiscInfo());
+                actMiscText.setText("Activity: " + b.name() + ". "+ localizationMethod.getMiscInfo());
             }
         });
         ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, distance, particles);
@@ -606,7 +609,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
         int rot = 2;
 
-        /*normal
+        /*normalp.setWeight(((float) p.getTimeAlive()) / totalTimeAlive);
         if (rot == 0)
             for (Cell c : walls.getCells()) {
                 rectangle.setBounds(Math.round(c.getLeftWall() * xcale) + xOffSet, Math.round(c.getTopWall() * xcale) + yOffSet,

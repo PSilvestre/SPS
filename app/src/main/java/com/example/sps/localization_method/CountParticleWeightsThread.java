@@ -37,6 +37,7 @@ public class CountParticleWeightsThread extends Thread {
 
             for (Particle p : particles) {
                 index = p.getCell();
+                if (index > 15) continue;
                 weightSumPerCell.set(index, weightSumPerCell.get(index) + p.getWeight());
             }
 
@@ -44,7 +45,6 @@ public class CountParticleWeightsThread extends Thread {
             int indexOfHighest = 0;
             float valueOfMax = weightSumPerCell.get(0);
             for (int i = 1; i < weightSumPerCell.size(); i++) {
-                System.out.println("weights at i: " + weightSumPerCell.get(i));
                 if (valueOfMax < weightSumPerCell.get(i)) {
                     indexOfHighest = i;
                     valueOfMax = weightSumPerCell.get(i);
