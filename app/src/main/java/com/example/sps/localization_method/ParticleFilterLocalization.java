@@ -12,6 +12,7 @@ import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -95,4 +96,63 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
             p.setY((float) (p.getY() + norm * Math.sin(angle * toRadians)));
         }
     }
+
+    @Override
+    public void collideAndResample(CopyOnWriteArrayList<Particle> particles, WallPositions walls) {
+        LinkedList<Particle> deadParticles = new LinkedList<>();
+
+        //collide and erase
+        for (Particle p : particles) {
+            if (walls.getDrawable().get(p.getCell()).collide(p))
+                deadParticles.add(p);
+        }
+        particles.removeAll(deadParticles);
+
+        int totalTimeAlive = deadParticles.size(); //All dead particles have time alive 1
+
+        boolean cellFound;
+        int cell_slack = 4; //check collisions in cells in the proximity (+-cell_slack)
+        for (Particle p : particles) {
+            cellFound = false;
+            for(int i = Math.max(0, p.getCell() - cell_slack); i < Math.min(walls.getCells().size(), p.getCell() + cell_slack + 1); i++) {
+                if(walls.getDrawable().get(i).isParticleInside(p)) {
+                    p.setCell(i);
+                    cellFound = true;
+                    p.incTimeAlive();
+                    totalTimeAlive += p.getTimeAlive();
+                    break;
+                }
+            }
+            if (!cellFound) {
+                deadParticles.add(p);
+                totalTimeAlive++; //All dead particles have time alive 1
+            }
+        }
+        particles.removeAll(deadParticles);
+
+        List<Pair<Particle,Double>> particleWeights = new ArrayList<>();
+        for (Particle p : particles) {
+            p.setWeight(((float) p.getTimeAlive()) / totalTimeAlive);
+            particleWeights.add(new Pair<Particle, Double>(p, (double) p.getWeight()));
+        }
+
+        EnumeratedDistribution<Particle> distribution = new EnumeratedDistribution<>(particleWeights);
+
+
+        for (Particle p : deadParticles) {
+            p.resetTimeAlive();
+            do {
+                Particle selected = distribution.sample();
+
+
+                NormalDistribution resampleNoise = new NormalDistribution(0, 3);
+
+                p.setY((float) (selected.getY() + resampleNoise.sample()));
+                p.setX((float) (selected.getX() + resampleNoise.sample()));
+            } while (walls.getCellParticleIsInside(p) == -1);
+
+        }
+        particles.addAll(deadParticles);
+    }
+
 }

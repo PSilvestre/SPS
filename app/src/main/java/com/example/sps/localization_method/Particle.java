@@ -5,6 +5,7 @@ public class Particle {
     private float last_x, last_y;
     private float weight;
     private int cell;
+    private int timeAlive;
 
 
     public Particle(float x, float y, float weight, int cell) {
@@ -14,6 +15,19 @@ public class Particle {
         this.last_y = y;
         this.weight = weight;
         this.cell = cell;
+        this.timeAlive = 1;
+    }
+
+    public int getTimeAlive() {
+        return timeAlive;
+    }
+
+    public void incTimeAlive() {
+        timeAlive++;
+    }
+
+    public void resetTimeAlive() {
+        timeAlive = 1;
     }
 
     public float getLast_x() {

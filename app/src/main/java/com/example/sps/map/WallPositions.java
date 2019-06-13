@@ -1,5 +1,7 @@
 package com.example.sps.map;
 
+import com.example.sps.localization_method.Particle;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,6 +48,13 @@ public class WallPositions {
         return total;
     }
 
+    public int getCellParticleIsInside(Particle p) {
+        for(Cell c: cells) {
+            if(c.isParticleInside(p))
+                return c.getCellNumber();
+        }
+        return -1;
+    }
 
 
 

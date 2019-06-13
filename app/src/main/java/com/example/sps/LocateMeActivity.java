@@ -420,7 +420,7 @@ public class LocateMeActivity extends AppCompatActivity {
         ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, distance, particles);
 
 
-        collideAndResample(particles);
+        ((ContinuousLocalization) localizationMethod).collideAndResample(particles, walls);
 
 
         distanceCumulative += distance;
@@ -428,46 +428,6 @@ public class LocateMeActivity extends AppCompatActivity {
         return;
     }
 
-    private void collideAndResample(CopyOnWriteArrayList<Particle> particles) {
-        LinkedList<Particle> deadParticles = new LinkedList<>();
-
-        //collide and erase
-        for (Particle p : particles) {
-            if (walls.getDrawable().get(p.getCell()).collide(p))
-                deadParticles.add(p);
-        }
-        particles.removeAll(deadParticles);
-
-        boolean cellFound;
-        int cell_slack = 4; //check collisions in cells in the proximity (+-cell_slack)
-        for (Particle p : particles) {
-            cellFound = false;
-            for(int i = Math.max(0, p.getCell() - cell_slack); i < Math.min(walls.getCells().size(), p.getCell() + cell_slack + 1); i++) {
-                if(walls.getDrawable().get(i).isParticleInside(p)) {
-                    p.setCell(i);
-                    cellFound = true;
-                    break;
-                }
-            }
-            if (!cellFound) {
-                deadParticles.add(p);
-            }
-        }
-        particles.removeAll(deadParticles);
-
-        Random r = new Random(System.currentTimeMillis());
-        for (Particle p : deadParticles) {
-            Particle selected = particles.get(r.nextInt(particles.size()));
-
-            p.setCell(selected.getCell());
-
-            NormalDistribution resampleNoise = new NormalDistribution(0, 3);
-
-            p.setY((float) (selected.getY() + resampleNoise.sample()));
-            p.setX((float) (selected.getX()+ resampleNoise.sample()));
-        }
-        particles.addAll(deadParticles);
-    }
 
     private void drawParticles() {
 
@@ -515,7 +475,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
     private void drawArrow() {
 
-        double stopX = 200 * Math.cos((mAzimuth + 90) / 180 * Math.PI);
+        double stopX = 200 * Math.cos((mAzimuth + 90) / 180 * Math.PI); // + 90 to compensate for rotation
         double stopY = 200 * Math.sin((mAzimuth + 90) / 180 * Math.PI);
         Paint p = new Paint();
         p.setStrokeWidth(15);
