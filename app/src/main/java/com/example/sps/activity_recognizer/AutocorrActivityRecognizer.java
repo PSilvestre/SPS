@@ -1,6 +1,7 @@
 package com.example.sps.activity_recognizer;
 
 import com.example.sps.Utils;
+import com.example.sps.database.DatabaseService;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 
@@ -13,9 +14,9 @@ import java.util.Queue;
 class AutocorrActivityRecognizer implements ActivityRecognizer {
 
     @Override
-    public SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData) {
+    public SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData, DatabaseService dbconnection) {
         ActivityRecognizer activityAlgorithm = new StdDevActivityRecognizer();
-        SubjectActivity activity = activityAlgorithm.recognizeActivity(sensorData);
+        SubjectActivity activity = activityAlgorithm.recognizeActivity(sensorData, dbconnection);
 
         if (activity == SubjectActivity.STANDING)
             return activity;
@@ -32,46 +33,18 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
             sensorDataList.add(0,f);
 
 
-        List<FloatTriplet> array1 = new ArrayList<>();
-        List<FloatTriplet> array2 = new ArrayList<>();
-
-        FloatTriplet mean1, mean2;
-        FloatTriplet stdDev1, stdDev2;
-
-
-        List<FloatTriplet> correlationForEachDelay = new ArrayList<>();
-
-        for (int delay = minDelay; delay < maxDelay; delay++) {
-            FloatTriplet sum = new FloatTriplet(0, 0, 0);
-
-            array1 = sensorDataList.subList(0, delay - 1);
-            array2 = sensorDataList.subList(delay, 2 * delay - 1);
-            mean1 = Utils.Mean(array1);
-            mean2 = Utils.Mean(array2);
-            stdDev1 = Utils.StdDeviation(array1, mean1);
-            stdDev2 = Utils.StdDeviation(array2, mean2);
-            float dotsum = 0;
-            for (int k = 0; k < delay-1; k++) {
-                sum.setX(sum.getX() + ((array1.get(k).getX() - mean1.getX()) * (array2.get(k).getX() - mean2.getX())));
-                sum.setY(sum.getY() + ((array1.get(k).getY() - mean1.getY()) * (array2.get(k).getY() - mean2.getY())));
-                sum.setZ(sum.getZ() + ((array1.get(k).getZ() - mean1.getZ()) * (array2.get(k).getZ() - mean2.getZ())));
-            }
-            sum.setX(sum.getX() / (delay * stdDev1.getX() * stdDev2.getX()));
-            sum.setY(sum.getY() / (delay * stdDev1.getY() * stdDev2.getY()));
-            sum.setZ(sum.getZ() / (delay * stdDev1.getZ() * stdDev2.getZ()));
-            correlationForEachDelay.add(sum);
-
-            if( sum.getZ() > 0.7 && sum.getX() > 0.5 && sum.getY() > 0.6 ) {
+        List<FloatTriplet> correlationsForEachDelay = Utils.correlation(sensorDataList, sensorDataList, minDelay, maxDelay);
+        int delay = minDelay;
+        for (FloatTriplet i : correlationsForEachDelay) {
+            if (i.getZ() > 0.7 && i.getX() > 0.5 && i.getY() > 0.6) {
                 System.out.println("DELAY:" + delay);
-                System.out.println("X: " + sum.getX() + " Y: " + sum.getY() + " Z: " + sum.getZ() + "\n");
+                System.out.println("X: " + i.getX() + " Y: " + i.getY() + " Z: " + i.getZ() + "\n");
                 return SubjectActivity.WALKING;
             }
+            delay++;
         }
 
         return activity;
     }
-
-
-
 
 }

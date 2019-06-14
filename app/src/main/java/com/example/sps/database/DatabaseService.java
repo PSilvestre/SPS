@@ -19,10 +19,13 @@ import com.example.sps.data_loader.WifiScan;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.example.sps.LocateMeActivity.NUM_ACC_READINGS;
+import static com.example.sps.LocateMeActivity.NUM_CELLS;
+
 public class DatabaseService extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "SPSDataBase.db";
-    public static final int DATABASE_VERSION = 7;
+    public static final int DATABASE_VERSION = 8;
 
 
     public static final String SCAN_TABLE_NAME = "scan";
@@ -93,13 +96,13 @@ public class DatabaseService extends SQLiteOpenHelper {
 
     private static final String SQL_CREATE_TABLE_ACTIVITY =
             "CREATE TABLE " + ACTIVITY_RECORDINGS_TABLE_NAME + " (" +
-                    ACTIVITY_RECORDINGS_COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    ACTIVITY_RECORDINGS_COLUMN_ID + " INTEGER NOT NULL," +
                     ACTIVITY_RECORDINGS_COLUMN_ACTIVITY + " TEXT NOT NULL," +
                     ACTIVITY_RECORDINGS_COLUMN_SAMPLE_INDEX + " INTEGER NOT NULL," +
                     ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_X + " REAL NOT NULL," +
                     ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Y + " REAL NOT NULL," +
-                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Z + " REAL NOT NULL" +
-                    ")";
+                    ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Z + " REAL NOT NULL," +
+                    "PRIMARY KEY (" + ACTIVITY_RECORDINGS_COLUMN_ID + ", " + ACTIVITY_RECORDINGS_COLUMN_SAMPLE_INDEX + ")"  + ")";
 
     private static final String SQL_DELETE_TABLE_ACTIVITY_RECORDINGS =
             "DROP TABLE IF EXISTS " + ACTIVITY_RECORDINGS_TABLE_NAME;
@@ -244,11 +247,7 @@ public class DatabaseService extends SQLiteOpenHelper {
 
     public int getNumberOfCells() {
 
-        Cursor cellCursor = dbconnection.rawQuery("SELECT DISTINCT " + SCAN_COLUMN_CELL_ID + " FROM " + SCAN_TABLE_NAME, new String[]{});
-
-        int numberOfCells = cellCursor.getCount();
-        cellCursor.close();
-        return numberOfCells;
+        return NUM_CELLS;
 
     }
 
@@ -258,11 +257,13 @@ public class DatabaseService extends SQLiteOpenHelper {
 
     public void insertRecording(List<FloatTriplet> recording, SubjectActivity activity) {
 
-        for ( int i = 0; i < recording.size(); i++) {
+        int numActivityRecordings = getNumberOfActivityRecordings();
 
+        for ( int i = 0; i < recording.size(); i++) {
 
             ContentValues sample = new ContentValues();
 
+            sample.put(ACTIVITY_RECORDINGS_COLUMN_ID, numActivityRecordings + 1);
             sample.put(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_INDEX, i);
             sample.put(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_X, recording.get(i).getX());
             sample.put(ACTIVITY_RECORDINGS_COLUMN_SAMPLE_VALUE_Y, recording.get(i).getY());
@@ -322,19 +323,19 @@ public class DatabaseService extends SQLiteOpenHelper {
     }
 
     public void deleteLastActivity() {
-        Cursor cursor = dbconnection.rawQuery("SELECT " + ACTIVITY_RECORDINGS_COLUMN_ID + " FROM " + ACTIVITY_RECORDINGS_TABLE_NAME, new String[]{});
+        int toDeleteID = getNumberOfActivityRecordings();
 
-        cursor.moveToLast();
+        dbconnection.execSQL("DELETE FROM " + ACTIVITY_RECORDINGS_TABLE_NAME + " WHERE " + ACTIVITY_RECORDINGS_COLUMN_ID + " = " + toDeleteID, new String[]{});
 
-        int ToDelete = cursor.getInt(cursor.getColumnIndex(ACTIVITY_RECORDINGS_COLUMN_ID));
-        for (int i = 0; i < 20; i++) {
-            dbconnection.execSQL("DELETE FROM " + ACTIVITY_RECORDINGS_TABLE_NAME + " WHERE " + ACTIVITY_RECORDINGS_COLUMN_ID + " = " + (ToDelete-i), new String[]{});
-        }
-        cursor.close();
     }
 
     public void deleteLastScan() {
         Cursor cursor = dbconnection.rawQuery("SELECT " + SCAN_COLUMN_SCAN_ID + " FROM " + SCAN_TABLE_NAME, new String[]{});
+
+        if (cursor == null || cursor.getCount() == 0) {
+            cursor.close();
+            return ;
+        }
 
         cursor.moveToLast();
 
@@ -393,7 +394,7 @@ public class DatabaseService extends SQLiteOpenHelper {
     }
 
     public int getNumberOfActivityRecordings() {
-        Cursor cursor = dbconnection.rawQuery("SELECT * FROM " + ACTIVITY_RECORDINGS_TABLE_NAME, new String[]{});
+        Cursor cursor = dbconnection.rawQuery("SELECT DISTINCT " + ACTIVITY_RECORDINGS_COLUMN_ID + " FROM " + ACTIVITY_RECORDINGS_TABLE_NAME, new String[]{});
 
         if (cursor == null || cursor.getCount() == 0) {
             cursor.close();
@@ -414,23 +415,15 @@ public class DatabaseService extends SQLiteOpenHelper {
     }
 
     public int getNumberOfActivityRecordingsOfActivity(SubjectActivity activity) {
-        Cursor cursor = dbconnection.rawQuery("SELECT * FROM " + ACTIVITY_RECORDINGS_TABLE_NAME + " WHERE " + ACTIVITY_RECORDINGS_COLUMN_ACTIVITY + " = '" + activity.name() + "'", new String[]{});
+        Cursor cursor = dbconnection.rawQuery("SELECT COUNT(" + ACTIVITY_RECORDINGS_COLUMN_ID + "), " + ACTIVITY_RECORDINGS_COLUMN_ACTIVITY + " FROM " + ACTIVITY_RECORDINGS_TABLE_NAME + " WHERE " + ACTIVITY_RECORDINGS_COLUMN_ACTIVITY + " = '" + activity.name() + "' GROUP BY " + ACTIVITY_RECORDINGS_COLUMN_ID, new String[]{});
 
         if (cursor == null || cursor.getCount() == 0) {
             cursor.close();
             return 0;
         }
 
+        int count = cursor.getCount();
 
-        if (cursor.isBeforeFirst())
-            cursor.moveToFirst();
-
-        int count = 1;
-
-        while (! cursor.isLast()) {
-            cursor.moveToNext();
-            count++;
-        }
         cursor.close();
         return count;
     }

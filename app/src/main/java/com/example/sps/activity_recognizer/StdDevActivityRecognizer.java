@@ -1,5 +1,7 @@
 package com.example.sps.activity_recognizer;
 
+import com.example.sps.database.DatabaseService;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
@@ -7,7 +9,7 @@ import java.util.Queue;
 public class StdDevActivityRecognizer implements ActivityRecognizer {
 
     @Override
-    public SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData) {
+    public SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData, DatabaseService dbconnection) {
         float[] means =  calculateMeans(sensorData);
         float[] stddevs = calculateStddevs(sensorData, means);
 

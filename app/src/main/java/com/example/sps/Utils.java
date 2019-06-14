@@ -4,6 +4,7 @@ import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.data_loader.WifiReading;
 import com.example.sps.data_loader.WifiScan;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,6 @@ public class Utils {
             stddev /= c;
 
 
-            System.out.println("std dev: " + (float) Math.sqrt(stddev));
             toReturn.put(bssid, (float) Math.sqrt(stddev));
         }
 
@@ -88,7 +88,7 @@ public class Utils {
     }
 
 
-    public static FloatTriplet Mean(List<FloatTriplet> list) {
+    public static FloatTriplet mean(List<FloatTriplet> list) {
 
         FloatTriplet mean = new FloatTriplet(0, 0, 0);
         for (int i = 0; i < list.size(); i++) {
@@ -103,7 +103,7 @@ public class Utils {
         return mean;
     }
 
-    public static FloatTriplet StdDeviation(List<FloatTriplet> list, FloatTriplet mean) {
+    public static FloatTriplet stdDeviation(List<FloatTriplet> list, FloatTriplet mean) {
 
         FloatTriplet stdDev = new FloatTriplet(0, 0, 0);
         for (int i = 0; i < list.size(); i++) {
@@ -116,6 +116,43 @@ public class Utils {
         stdDev.setZ((float)Math.sqrt(stdDev.getZ()/list.size()));
 
         return stdDev;
+    }
+
+
+    public static List<FloatTriplet> correlation(List<FloatTriplet> data1, List<FloatTriplet> data2, int minDelay, int maxDelay) {
+
+
+        List<FloatTriplet> array1;
+        List<FloatTriplet> array2;
+
+        FloatTriplet mean1, mean2;
+        FloatTriplet stdDev1, stdDev2;
+
+
+        List<FloatTriplet> correlationForEachDelay = new ArrayList<>();
+
+        for (int delay = minDelay; delay < maxDelay; delay++) {
+            FloatTriplet sum = new FloatTriplet(0, 0, 0);
+
+            array1 = data1.subList(0, delay - 1);
+            array2 = data2.subList(delay, 2 * delay - 1);
+            mean1 = Utils.mean(array1);
+            mean2 = Utils.mean(array2);
+            stdDev1 = Utils.stdDeviation(array1, mean1);
+            stdDev2 = Utils.stdDeviation(array2, mean2);
+
+            for (int k = 0; k < delay-1; k++) {
+                sum.setX(sum.getX() + ((array1.get(k).getX() - mean1.getX()) * (array2.get(k).getX() - mean2.getX())));
+                sum.setY(sum.getY() + ((array1.get(k).getY() - mean1.getY()) * (array2.get(k).getY() - mean2.getY())));
+                sum.setZ(sum.getZ() + ((array1.get(k).getZ() - mean1.getZ()) * (array2.get(k).getZ() - mean2.getZ())));
+            }
+            sum.setX(sum.getX() / (delay * stdDev1.getX() * stdDev2.getX()));
+            sum.setY(sum.getY() / (delay * stdDev1.getY() * stdDev2.getY()));
+            sum.setZ(sum.getZ() / (delay * stdDev1.getZ() * stdDev2.getZ()));
+            correlationForEachDelay.add(sum);
+        }
+
+        return correlationForEachDelay;
     }
 
 }

@@ -1,5 +1,7 @@
 package com.example.sps.activity_recognizer;
 
+import com.example.sps.database.DatabaseService;
+
 import java.util.List;
 import java.util.Queue;
 
@@ -18,7 +20,7 @@ class ExtendedActivityRecognizer implements ActivityRecognizer {
 
 
     @Override
-    public SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData) {
+    public SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData, DatabaseService dbconnection) {
         return null;
     }
 }

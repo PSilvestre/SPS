@@ -75,6 +75,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class LocateMeActivity extends AppCompatActivity {
 
     public static final int NUM_ACC_READINGS = 200;
+    public static final int NUM_CELLS = 16;
 
     public static final int DRAW_FRAMES_PER_SECOND = 10;
     public static final int SKIP_TICKS_DRAW = Math.round(1000.0f / DRAW_FRAMES_PER_SECOND);
@@ -207,7 +208,7 @@ public class LocateMeActivity extends AppCompatActivity {
         localizationMethod = LocalizationAlgorithm.KNN_RSSI.getMethod();
 
 
-        accelerometerData = new LinkedBlockingQueue<FloatTriplet>();
+        accelerometerData = new LinkedBlockingQueue<>();
         accelerometerListener = new AccelerometerListener(accelerometerData);
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -313,8 +314,10 @@ public class LocateMeActivity extends AppCompatActivity {
 
             //Start wifi scan
             wifiManager.startScan();
+
             accelerometerData.removeAll(accelerometerData);
-            sensorManager.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+
+            sensorManager.registerListener(accelerometerListener, accelerometer, 20000);
 
             while (scanData == null || scanData.size() == 0 || accelerometerData.size() < NUM_ACC_READINGS) { //spin while data not ready
                 try {
@@ -326,8 +329,8 @@ public class LocateMeActivity extends AppCompatActivity {
             //when finished, compute location and activity and post to user. unregister accelorometer listener
             sensorManager.unregisterListener(accelerometerListener);
 
-            final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData);
-
+            final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData, databaseService);
+;
             cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
 
             final int cell = getIndexOfLargest(cellProbabilities) + 1;
@@ -404,7 +407,7 @@ public class LocateMeActivity extends AppCompatActivity {
         float timePassed = (currentTime - lastUpdateTime) / 1000.0f;
         SubjectActivity a = SubjectActivity.LOADING;
         if (accelerometerData.size() == NUM_ACC_READINGS)
-            a = activityRecognizer.recognizeActivity(accelerometerData);
+            a = activityRecognizer.recognizeActivity(accelerometerData, databaseService);
         final SubjectActivity b = a;
 
         if(a == SubjectActivity.WALKING) {

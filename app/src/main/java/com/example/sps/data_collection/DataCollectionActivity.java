@@ -147,6 +147,7 @@ public class DataCollectionActivity extends AppCompatActivity {
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
                 scanCounter.set(0);
+                updateScanCounter();
             }
 
             @Override
@@ -178,6 +179,7 @@ public class DataCollectionActivity extends AppCompatActivity {
                     public void run() {
                         for (int i = 0; i < 10; i++) {
                             scanInfo = new ScanInfo(wifiManager.startScan(), Integer.parseInt(txtScanningCell.getText().toString()), Direction.EAST);
+
                             updateTxtScanStatus(scanInfo.isScanSuccessful());
                             while(scanInfo != null){
                             try {
@@ -385,41 +387,77 @@ public class DataCollectionActivity extends AppCompatActivity {
     }
 
     public void updateScanCounter(){
-        txtScanCount.setText(getString(R.string.scanCount) + scanCounter.get());
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtScanCount.setText(getString(R.string.scanCount) + scanCounter.get());
+            }
+        });
     }
 
     public void updateActRecCounter(){
-        txtActivityCount.setText(getString(R.string.scanCount) + scanCounter.get());
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtActivityCount.setText(getString(R.string.actCount) + actRecordCounter.get());
+            }
+        });
     }
 
 
     private void updateTxtScanStatus(boolean scanSuccessful) {
+        final String update;
         if (scanSuccessful)
-            txtScanStatus.setText(getString(R.string.scanStat) + "@string/statusOk");
+            update = getString(R.string.scanStat) + getString(R.string.statusOk);
         else
-            txtScanStatus.setText(getString(R.string.scanStat) + "@string/statusNotOk");
+            update = getString(R.string.scanStat) + getString(R.string.statusNotOk);
+            runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                    txtScanStatus.setText(update);
+            }
+        });
     }
-
 
 
     public void updateTxtInfoScan() {
-        Integer aux = dbConnection.getNumberOfScans();
-        txtInfoScan.setText(getString(R.string.totNumScans) + aux.toString());
+        final Integer aux = dbConnection.getNumberOfScans();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtInfoScan.setText(getString(R.string.totNumScans) + aux.toString());
+            }
+        });
     }
 
     public void updateTxtInfoScanSpec() {
-        Integer aux = dbConnection.getNumberOfScansOnCell(Integer.parseInt(txtScanningCell.getText().toString()));
-        txtInfoScanSpec.setText(getString(R.string.scanSpec) + aux.toString());
+        final Integer aux = dbConnection.getNumberOfScansOnCell(Integer.parseInt(txtScanningCell.getText().toString()));
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtInfoScanSpec.setText(getString(R.string.scanSpec) + aux.toString());
+            }
+        });
     }
 
     public void updateTxtInfoAct(){
-        Integer aux = dbConnection.getNumberOfActivityRecordings();
-        txtInfoActivity.setText(getString(R.string.totNumActRec)+ aux.toString());
+        final Integer aux = dbConnection.getNumberOfActivityRecordings();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtInfoActivity.setText(getString(R.string.totNumActRec)+ aux.toString());
+            }
+        });
     }
 
     public void updateTxtInfoActSpec() {
-        Integer aux = dbConnection.getNumberOfActivityRecordingsOfActivity(selectedActivity);
-        txtInfoActivitySpec.setText(getString(R.string.actSpec) + aux.toString());
+        final Integer aux = dbConnection.getNumberOfActivityRecordingsOfActivity(selectedActivity);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtInfoActivitySpec.setText(getString(R.string.actSpec) + aux.toString());
+            }
+        });
     }
 
 }
