@@ -88,67 +88,56 @@ public class Utils {
     }
 
 
-    public static FloatTriplet mean(List<FloatTriplet> list) {
+    public static float mean(List<Float> list) {
 
-        FloatTriplet mean = new FloatTriplet(0, 0, 0);
+        float mean = 0;
         for (int i = 0; i < list.size(); i++) {
-            mean.setX(mean.getX() + list.get(i).getX());
-            mean.setY(mean.getY() + list.get(i).getY());
-            mean.setZ(mean.getZ() + list.get(i).getZ());
+            mean += list.get(i);
         }
-        mean.setX(mean.getX()/list.size());
-        mean.setY(mean.getY()/list.size());
-        mean.setZ(mean.getZ()/list.size());
+        mean /= list.size();
 
         return mean;
     }
 
-    public static FloatTriplet stdDeviation(List<FloatTriplet> list, FloatTriplet mean) {
+    public static float stdDeviation(List<Float> list, Float mean) {
 
-        FloatTriplet stdDev = new FloatTriplet(0, 0, 0);
+        float stdDev = 0;
         for (int i = 0; i < list.size(); i++) {
-            stdDev.setX(stdDev.getX() + (float) Math.pow(list.get(i).getX() - mean.getX(),2));
-            stdDev.setY(stdDev.getY() + (float) Math.pow(list.get(i).getY() - mean.getY(),2));
-            stdDev.setZ(stdDev.getZ() + (float) Math.pow(list.get(i).getZ() - mean.getZ(),2));
+            stdDev += (float) Math.pow(list.get(i) - mean,2);
         }
-        stdDev.setX((float)Math.sqrt(stdDev.getX()/list.size()));
-        stdDev.setY((float)Math.sqrt(stdDev.getY()/list.size()));
-        stdDev.setZ((float)Math.sqrt(stdDev.getZ()/list.size()));
+        stdDev /= list.size();
+        stdDev = (float) Math.sqrt(stdDev);
 
         return stdDev;
     }
 
 
-    public static List<FloatTriplet> correlation(List<FloatTriplet> data1, List<FloatTriplet> data2, int minDelay, int maxDelay) {
+    public static List<Float> correlation(List<Float> data1, List<Float> data2, int minDelay, int maxDelay) {
 
 
-        List<FloatTriplet> array1;
-        List<FloatTriplet> array2;
+        List<Float> array1;
+        List<Float> array2;
 
-        FloatTriplet mean1, mean2;
-        FloatTriplet stdDev1, stdDev2;
+        Float mean1, mean2;
+        Float stdDev1, stdDev2;
 
 
-        List<FloatTriplet> correlationForEachDelay = new ArrayList<>();
+        List<Float> correlationForEachDelay = new ArrayList<>();
 
         for (int delay = minDelay; delay < maxDelay; delay++) {
-            FloatTriplet sum = new FloatTriplet(0, 0, 0);
+            float sum = 0;
 
-            array1 = data1.subList(0, delay - 1);
-            array2 = data2.subList(delay, 2 * delay - 1);
+            array1 = data1.subList(0, delay);
+            array2 = data2.subList(delay, 2 * delay);
             mean1 = Utils.mean(array1);
             mean2 = Utils.mean(array2);
             stdDev1 = Utils.stdDeviation(array1, mean1);
             stdDev2 = Utils.stdDeviation(array2, mean2);
 
             for (int k = 0; k < delay-1; k++) {
-                sum.setX(sum.getX() + ((array1.get(k).getX() - mean1.getX()) * (array2.get(k).getX() - mean2.getX())));
-                sum.setY(sum.getY() + ((array1.get(k).getY() - mean1.getY()) * (array2.get(k).getY() - mean2.getY())));
-                sum.setZ(sum.getZ() + ((array1.get(k).getZ() - mean1.getZ()) * (array2.get(k).getZ() - mean2.getZ())));
+                sum += (array1.get(k) - mean1) * (array2.get(k) - mean2);
             }
-            sum.setX(sum.getX() / (delay * stdDev1.getX() * stdDev2.getX()));
-            sum.setY(sum.getY() / (delay * stdDev1.getY() * stdDev2.getY()));
-            sum.setZ(sum.getZ() / (delay * stdDev1.getZ() * stdDev2.getZ()));
+            sum /= (delay * stdDev1 * stdDev2);
             correlationForEachDelay.add(sum);
         }
 

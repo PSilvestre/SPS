@@ -18,24 +18,31 @@ public class CrossCorrelationActivityRecognizer implements ActivityRecognizer {
         int minDelay = 40;
         int maxDelay = 100;
 
-        List<FloatTriplet> sensorDataList = new ArrayList<>(sensorData);
-
+        List<Float> sensorDataMagnitudeList = new ArrayList<>();
+        for(FloatTriplet f : sensorData) {
+            float magnitude = (float) Math.sqrt(Math.pow(f.getX(), 2) + Math.pow(f.getY(), 2) + Math.pow(f.getZ(), 2));
+            sensorDataMagnitudeList.add(magnitude);
+        }
 
         List<List<FloatTriplet>> sensorDataListFromDatabase;
 
         List<SubjectActivity> activitiesToIdentify = new ArrayList<>();
-        activitiesToIdentify.add(SubjectActivity.STANDING);
         activitiesToIdentify.add(SubjectActivity.WALKING);
 
         for(SubjectActivity activityToIdenfity : activitiesToIdentify) {
             sensorDataListFromDatabase = dBconnection.getActivityRecordings(activityToIdenfity);
             for(List<FloatTriplet> recording : sensorDataListFromDatabase) {
-                System.out.println("Recording.size: " + recording.size());
-                List<FloatTriplet> correlation = Utils.correlation(sensorDataList, recording, minDelay, maxDelay);
+                List<Float> dbDataMagnitudeList = new ArrayList<>();
+                for(FloatTriplet f : recording) {
+                    float magnitude = (float) Math.sqrt(Math.pow(f.getX(), 2) + Math.pow(f.getY(), 2) + Math.pow(f.getZ(), 2));
+                    dbDataMagnitudeList.add(magnitude);
+                }
 
-                for(FloatTriplet correlationForDelay : correlation)
-                    if (correlationForDelay.getZ() > 0.7 && correlationForDelay.getX() > 0.5 && correlationForDelay.getY() > 0.6) {
-                        System.out.println("X: " + correlationForDelay.getX() + " Y: " + correlationForDelay.getY() + " Z: " + correlationForDelay.getZ() + "\n");
+                System.out.println("Recording.size: " + recording.size());
+                List<Float> correlation = Utils.correlation(sensorDataMagnitudeList, dbDataMagnitudeList, minDelay, maxDelay);
+
+                for(Float correlationForDelay : correlation)
+                    if (correlationForDelay > 0.7) {
                         return SubjectActivity.WALKING;
                     }
 
