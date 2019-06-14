@@ -135,6 +135,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
     private WallPositions walls = new WallPositions();
 
+    private Runnable activeLocalizationRunnable;
 
 
     @Override
@@ -239,7 +240,10 @@ public class LocateMeActivity extends AppCompatActivity {
                 if (!(localizationMethod instanceof ContinuousLocalization))
                     new Thread(new singleLocalizationRunnable()).start();
                 else {
-                    new Thread(new continuousLocalizationRunnable()).start();
+                    if(activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable)
+                        ((continuousLocalizationRunnable)activeLocalizationRunnable).setRunning(false);
+                    activeLocalizationRunnable = new continuousLocalizationRunnable();
+                    new Thread(activeLocalizationRunnable).start();
                 }
 
             }
@@ -308,7 +312,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
     }
 
-    private class singleLocalizationRunnable implements Runnable {
+    public class singleLocalizationRunnable implements Runnable {
         public void run() {
             update = true;
 
@@ -363,7 +367,13 @@ public class LocateMeActivity extends AppCompatActivity {
     }
 
 
-    private class continuousLocalizationRunnable implements Runnable {
+    public class continuousLocalizationRunnable implements Runnable {
+
+        private boolean running = true;
+
+        public void setRunning(boolean running) {
+            this.running = running;
+        }
 
         @Override
         public void run() {
@@ -378,7 +388,7 @@ public class LocateMeActivity extends AppCompatActivity {
             long nextTick = System.currentTimeMillis();
             long sleepTime = 0;
 
-            while (localizationMethod instanceof ContinuousLocalization) {
+            while (localizationMethod instanceof ContinuousLocalization && running) {
 
                 updateParticles(lastUpdateTime);
                 lastUpdateTime = System.currentTimeMillis();
