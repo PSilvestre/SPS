@@ -13,21 +13,21 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
 
 
 
-    int minDelay = 40;
-    int maxDelay = 100;
+    int minDelay = 50;
+    int maxDelay = 70;
 
     int optDelay = 0;
 
 
     @Override
     public SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData, DatabaseService dbconnection) {
-        ActivityRecognizer activityAlgorithm = new StdDevActivityRecognizer();
-        SubjectActivity activity = activityAlgorithm.recognizeActivity(sensorData, dbconnection);
-
-        if (activity == SubjectActivity.STANDING)
-            return activity;
-
-        activity = SubjectActivity.STD_NOT_IDLE;
+        //ActivityRecognizer activityAlgorithm = new StdDevActivityRecognizer();
+        //SubjectActivity activity = activityAlgorithm.recognizeActivity(sensorData, dbconnection);
+//
+        //if (activity == SubjectActivity.STANDING)
+        //    return activity;
+//
+        //activity = SubjectActivity.STD_NOT_IDLE;
 
 
         List<Float> sensorDataMagnitudeList = new ArrayList<>();
@@ -36,11 +36,16 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
             sensorDataMagnitudeList.add(0, magnitude);
         }
 
+        float mean = Utils.mean(sensorDataMagnitudeList);
+        float stdDev = Utils.stdDeviation(sensorDataMagnitudeList, mean);
+
+        if(stdDev < 0.6) return SubjectActivity.STANDING;
+
         List<Float> correlationsForEachDelay = Utils.correlation(sensorDataMagnitudeList, sensorDataMagnitudeList, minDelay, maxDelay);
         int delayDetected = minDelay;
 
         for (Float correlation : correlationsForEachDelay) {
-            if (correlation > 0.7) {
+            if (correlation > 0.8) {
                 if(optDelay == 0)
                     optDelay = delayDetected;
                 else
@@ -50,7 +55,7 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
             delayDetected++;
         }
 
-        return activity;
+        return SubjectActivity.STD_NOT_IDLE;
     }
 
     @Override
