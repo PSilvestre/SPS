@@ -35,6 +35,59 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         return "NUM_PARTICLES = " + NUM_PARTICLES;
     }
 
+
+    private void sampleParticle(float[] cellProbabilities, Particle particle) {
+        WallPositions walls = new WallPositions();
+
+        Random r = new Random(System.currentTimeMillis());
+
+        List<Pair<Integer,Double>> itemWeights = new ArrayList<>();
+        for (int i = 0; i < cellProbabilities.length; i++) {
+            itemWeights.add(new Pair(i, new Double(cellProbabilities[i])));
+        }
+
+        EnumeratedDistribution cellProbability = new EnumeratedDistribution(itemWeights);
+
+        int cell = (int) cellProbability.sample();
+
+        Cell cellO = walls.getCells().get(cell);
+
+        float sampleX = r.nextFloat() * (cellO.getRightWall() - cellO.getLeftWall()) + cellO.getLeftWall();
+        float sampleY = r.nextFloat() * (cellO.getBottomWall() - cellO.getTopWall()) + cellO.getTopWall();
+        particle.setX(sampleX);
+        particle.setY(sampleY);
+        particle.setCell(cell);
+
+    }
+
+    private void spreadList(float[] cellProbabilities, List<Particle> particles) {
+        WallPositions walls = new WallPositions();
+
+        Random r = new Random(System.currentTimeMillis());
+        List<Pair<Integer,Double>> itemWeights = new ArrayList<>();
+        for (int i = 0; i < cellProbabilities.length; i++) {
+            System.out.println("i: " + i + ", val: " + cellProbabilities[i]);
+            itemWeights.add(new Pair(i, new Double(cellProbabilities[i])));
+        }
+
+        EnumeratedDistribution cellProbability = new EnumeratedDistribution(itemWeights);
+        int cell;
+        for( int i = 0; i < NUM_PARTICLES; i++){
+            cell = (int) cellProbability.sample();
+
+            Cell cellO = walls.getCells().get(cell);
+
+            float sampleX = r.nextFloat() * (cellO.getRightWall() - cellO.getLeftWall()) + cellO.getLeftWall();
+            float sampleY = r.nextFloat() * (cellO.getBottomWall() - cellO.getTopWall()) + cellO.getTopWall();
+            particles.get(i).setX(sampleX);
+            particles.get(i).setY(sampleY);
+            particles.get(i).setCell(cell);
+
+        }
+    }
+
+
+
     @Override
     public CopyOnWriteArrayList<Particle> spreadParticles(float[] priorBelief) {
         // If prior belief is uniform, distribute by area. Otherwise, by belief.
@@ -54,29 +107,15 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
 
         CopyOnWriteArrayList<Particle> particles = new CopyOnWriteArrayList<>();
 
-
-        WallPositions walls = new WallPositions();
-
-        Random r = new Random(System.currentTimeMillis());
-        List<Pair<Integer,Double>> itemWeights = new ArrayList<>();
-        for (int i = 0; i < priorBelief.length; i++) {
-            itemWeights.add(new Pair(i, new Double(spreadProbabilities[i])));
-        }
-
-        EnumeratedDistribution cellProbability = new EnumeratedDistribution(itemWeights);
-        int cell;
-        for( int i = 0; i < NUM_PARTICLES; i++){
-            cell = (int) cellProbability.sample();
-
-            Cell cellO = walls.getCells().get(cell);
-
-            float sampleX = r.nextFloat() * (cellO.getRightWall() - cellO.getLeftWall()) + cellO.getLeftWall();
-            float sampleY = r.nextFloat() * (cellO.getBottomWall() - cellO.getTopWall()) + cellO.getTopWall();
-
-            Particle particle = new Particle(sampleX, sampleY, 1.0f/NUM_PARTICLES, cell);
-
+        for( int i = 0; i < NUM_PARTICLES; i++) {
+            Particle particle = new Particle(0, 0, 1.0f/NUM_PARTICLES, 0);
             particles.add(particle);
+
         }
+
+        spreadList(spreadProbabilities, particles);
+
+
         return particles;
     }
 
@@ -131,6 +170,8 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
 
         particles.removeAll(deadParticles);
 
+
+
         if(particles.size() != 0) {
             List<Pair<Particle, Double>> particleWeights = new ArrayList<>();
             for(Particle p: particles){
@@ -140,15 +181,27 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
 
             EnumeratedDistribution<Particle> distribution = new EnumeratedDistribution<>(particleWeights);
 
+            Random r = new Random(System.currentTimeMillis());
+
+            float[] spreadProbabilities = new float[NUM_CELLS];
+            WallPositions wallPositions = new WallPositions();
+            for(int i = 0; i <NUM_CELLS; i++) {
+                spreadProbabilities[i] = wallPositions.getCells().get(i).getAreaOfCell() / wallPositions.getTotalArea();
+            }
+
             for(Particle p: deadParticles){
                 p.resetTimeAlive();
                 p.setWeight(((float) p.getTimeAlive()) / totalTimeAlive);
-                Particle selected = distribution.sample();
 
+                if(r.nextFloat() < 0.1){
 
-                p.setY(selected.getY());
-                p.setX(selected.getX());
-
+                    sampleParticle(spreadProbabilities, p);
+                }else {
+                    Particle selected = distribution.sample();
+                    p.setY(selected.getY());
+                    p.setX(selected.getX());
+                    p.setCell(selected.getCell());
+                }
             }
             particles.addAll(deadParticles);
         } else {

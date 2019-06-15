@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.example.sps.LocateMeActivity.ACCELEROMETER_SAMPLES_PER_SECOND;
+
 
 /* This activity is the same as AutocorrActivityRecognizer but it will correlate with many more
 activities apart from just Walking.
@@ -21,6 +23,8 @@ whatever happens first.
 
 class ExtendedActivityRecognizer implements ActivityRecognizer {
 
+
+    private int optDelay;
 
     @Override
     public SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData, DatabaseService dbconnection) {
@@ -45,26 +49,27 @@ class ExtendedActivityRecognizer implements ActivityRecognizer {
         activitiesToIdentify.add(SubjectActivity.ELEVATOR);
 
 
-        for(SubjectActivity activityToIdenfity : activitiesToIdentify) {
-            sensorDataListFromDatabase = dbconnection.getActivityRecordings(activityToIdenfity);
-            if (sensorDataListFromDatabase.size() == 0) continue;
+        for(int activityIndex = 0; activityIndex < activitiesToIdentify.size(); activityIndex ++) {
+            sensorDataListFromDatabase = dbconnection.getActivityRecordings(activitiesToIdentify.get(activityIndex));
+            if (sensorDataListFromDatabase == null) continue;
 
             for(List<FloatTriplet> recording : sensorDataListFromDatabase) {
                 List<Float> dbDataMagnitudeList = new ArrayList<>();
-                for(FloatTriplet f : recording) {
+                for (FloatTriplet f : recording) {
                     float magnitude = (float) Math.sqrt(Math.pow(f.getX(), 2) + Math.pow(f.getY(), 2) + Math.pow(f.getZ(), 2));
                     dbDataMagnitudeList.add(magnitude);
                 }
 
-                List<Float> correlation = Utils.correlation(sensorDataMagnitudeList, dbDataMagnitudeList, minDelay, maxDelay);
+                List<Float> correlationsForEachDelay = Utils.correlation(sensorDataMagnitudeList, dbDataMagnitudeList, minDelay, maxDelay);
 
-                for(Float correlationForDelay : correlation)
-                    if (correlationForDelay > 0.7) {
-                        return activityToIdenfity;
-                    }
+                int largestCorrelationIndex = Utils.argMax(correlationsForEachDelay);
+                float correlationMax = correlationsForEachDelay.get(largestCorrelationIndex);
 
+                if (correlationMax > 0.8) {
+                    optDelay = minDelay + largestCorrelationIndex;
+                    return activitiesToIdentify.get(activityIndex);
+                }
             }
-
         }
 
         return activity;
@@ -72,7 +77,20 @@ class ExtendedActivityRecognizer implements ActivityRecognizer {
     }
 
     @Override
-    public int getSteps(Queue<FloatTriplet> sensorData, DatabaseService dBconnection, SubjectActivity currentActivityState, AtomicInteger accReadingsSinceLastUpdate) {
+    public int getSteps(Queue<FloatTriplet> sensorData, DatabaseService dbconnection, SubjectActivity currentActivityState, AtomicInteger accReadingsSinceLastUpdate) {
+        if (currentActivityState == SubjectActivity.WALKING || currentActivityState == SubjectActivity.RUNNING) {
+            int numSteps = accReadingsSinceLastUpdate.get() / (optDelay / 2);
+            int remainder = accReadingsSinceLastUpdate.get() % (optDelay / 2);
+            System.out.println("ACC_READINGS_SINCE = " + accReadingsSinceLastUpdate.get() + "\tNUM STEPS = " + numSteps + "\tREMAINDER = " + remainder + "\t OPT DELAY = " + optDelay);
+
+            accReadingsSinceLastUpdate.set(remainder);
+
+            if (currentActivityState == SubjectActivity.RUNNING) {
+                numSteps *= 2; // "Thomas Running invented running when he tried to walk twice" -> running = 2 * walk
+            }
+            return numSteps;
+        }
+        accReadingsSinceLastUpdate.set(0);
         return 0;
     }
 }

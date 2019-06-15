@@ -74,6 +74,8 @@ public class LocateMeActivity extends AppCompatActivity {
     public static final int NUM_ACC_READINGS = 200;
     public static final int NUM_CELLS = 16;
 
+    public static final int ACCELEROMETER_SAMPLES_PER_SECOND = 50;
+
     public static final int DRAW_FRAMES_PER_SECOND = 10;
     public static final int SKIP_TICKS_DRAW = Math.round(1000.0f / DRAW_FRAMES_PER_SECOND);
 
@@ -325,7 +327,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
             accelerometerData.removeAll(accelerometerData);
 
-            sensorManager.registerListener(accelerometerListener, accelerometer, 20000);
+            sensorManager.registerListener(accelerometerListener, accelerometer, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
 
             while (scanData == null || scanData.size() == 0 || accelerometerData.size() < NUM_ACC_READINGS) { //spin while data not ready
                 try {
@@ -387,7 +389,7 @@ public class LocateMeActivity extends AppCompatActivity {
         public void run() {
 
             update = false;
-            sensorManager.registerListener(new AccelerometerListener(accelerometerData, accReadingsSinceLastUpdate), accelerometer, 20000);
+            sensorManager.registerListener(new AccelerometerListener(accelerometerData, accReadingsSinceLastUpdate), accelerometer, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
             // Spread particles
             particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
 
@@ -443,6 +445,7 @@ public class LocateMeActivity extends AppCompatActivity {
     private void updateParticles(int steps) {
 
         float distance = steps * 0.76f;
+        distanceCumulative += distance;
 
         ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, distance, particles);
 

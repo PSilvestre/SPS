@@ -10,6 +10,7 @@ import android.view.View;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 
+import com.example.sps.Utils;
 import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.Direction;
