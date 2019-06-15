@@ -144,4 +144,16 @@ public class Utils {
         return correlationForEachDelay;
     }
 
+
+    private static int maxIndex(List<Float> array) {
+        int maxIndex = 0;
+        float currMax = 0;
+        for (int i = 0; i < array.size(); i++) {
+            if (array.get(i) > currMax) {
+                currMax = array.get(i);
+                maxIndex = i;
+            }
+        }
+        return maxIndex;
+    }
 }
