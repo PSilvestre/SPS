@@ -16,7 +16,6 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -312,7 +311,7 @@ public class DataCollectionActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Queue < FloatTriplet > data = new LinkedList<>();
-                        SensorEventListener listener = new AccelerometerListener(data);
+                        SensorEventListener listener = new AccelerometerListener(data, null);
                         sensorManager.registerListener(listener, accelerometer, 50000);
                         while(data.size() < NUM_ACC_READINGS ){
                             try {

@@ -16,17 +16,23 @@ public class CountParticleWeightsThread extends Thread {
     private List<Particle> particles;
     private WallPositions walls;
     private LocateMeActivity src;
-
+    private boolean running;
     public CountParticleWeightsThread(List<Particle> particles, WallPositions walls, LocateMeActivity src) {
         this.particles = particles;
         this.walls = walls;
         this.src = src;
+        this.running = true;
+    }
+
+    public void setRunning(boolean running) {
+        this.running = running;
     }
 
     @Override
     public void run() {
 
-        while (src.getLocalizationMethod() instanceof ContinuousLocalization) {
+
+        while (src.getLocalizationMethod() instanceof ContinuousLocalization && running) {
             List<Float> weightSumPerCell = new ArrayList<>(16);
 
             for (int i = 0; i < walls.getCells().size(); i++) {
@@ -64,7 +70,6 @@ public class CountParticleWeightsThread extends Thread {
                 e.printStackTrace();
             }
         }
-        System.out.println("Just got out, too soon though. Decision: ");
     }
 
 }

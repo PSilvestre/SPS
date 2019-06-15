@@ -6,6 +6,7 @@ import com.example.sps.database.DatabaseService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /* This activity is the same as AutocorrActivityRecognizer but it will correlate with many more
@@ -68,5 +69,10 @@ class ExtendedActivityRecognizer implements ActivityRecognizer {
 
         return activity;
 
+    }
+
+    @Override
+    public int getSteps(Queue<FloatTriplet> sensorData, DatabaseService dBconnection, SubjectActivity currentActivityState, AtomicInteger accReadingsSinceLastUpdate) {
+        return 0;
     }
 }

@@ -46,15 +46,12 @@ import com.example.sps.localization_method.Particle;
 import com.example.sps.map.Cell;
 import com.example.sps.map.WallPositions;
 
-import org.apache.commons.math3.distribution.NormalDistribution;
-
 import java.io.FileWriter;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 //TODO: IMPLEMENT way of automatic finding statistics on measurements (auto measure save?)
 
@@ -136,7 +133,7 @@ public class LocateMeActivity extends AppCompatActivity {
     private WallPositions walls = new WallPositions();
 
     private Runnable activeLocalizationRunnable;
-
+    private CountParticleWeightsThread activeCountParticlesThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -210,7 +207,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
 
         accelerometerData = new LinkedBlockingQueue<>();
-        accelerometerListener = new AccelerometerListener(accelerometerData);
+        accelerometerListener = new AccelerometerListener(accelerometerData, null);
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
@@ -240,8 +237,15 @@ public class LocateMeActivity extends AppCompatActivity {
                 if (!(localizationMethod instanceof ContinuousLocalization))
                     new Thread(new singleLocalizationRunnable()).start();
                 else {
-                    if(activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable)
-                        ((continuousLocalizationRunnable)activeLocalizationRunnable).setRunning(false);
+                    if(activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable) {
+                        ((continuousLocalizationRunnable) activeLocalizationRunnable).setRunning(false);
+                        activeCountParticlesThread.setRunning(false);
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
                     activeLocalizationRunnable = new continuousLocalizationRunnable();
                     new Thread(activeLocalizationRunnable).start();
                 }
@@ -371,6 +375,10 @@ public class LocateMeActivity extends AppCompatActivity {
 
         private boolean running = true;
 
+        private int stepsSinceLastUpdate = 0;
+
+        private AtomicInteger accReadingsSinceLastUpdate = new AtomicInteger(0);
+
         public void setRunning(boolean running) {
             this.running = running;
         }
@@ -379,23 +387,44 @@ public class LocateMeActivity extends AppCompatActivity {
         public void run() {
 
             update = false;
-            sensorManager.registerListener(new AccelerometerListener(accelerometerData), accelerometer, 20000);
+            sensorManager.registerListener(new AccelerometerListener(accelerometerData, accReadingsSinceLastUpdate), accelerometer, 20000);
             // Spread particles
             particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
-            long lastUpdateTime = System.currentTimeMillis();
-            new CountParticleWeightsThread(particles, walls, getLocateMeActivity()).start();
+
+            activeCountParticlesThread = new CountParticleWeightsThread(particles, walls, getLocateMeActivity());
+            activeCountParticlesThread.start();
 
             long nextTick = System.currentTimeMillis();
             long sleepTime = 0;
 
-            while (localizationMethod instanceof ContinuousLocalization && running) {
+            SubjectActivity currentActivityState = SubjectActivity.LOADING;
 
-                updateParticles(lastUpdateTime);
-                lastUpdateTime = System.currentTimeMillis();
+            int steps;
+            while (localizationMethod instanceof ContinuousLocalization && running) {
+                steps = 0;
+
+                if(currentActivityState == SubjectActivity.LOADING)
+                    accReadingsSinceLastUpdate.set(0);
+
+                if (accelerometerData.size() == NUM_ACC_READINGS) {
+                    SubjectActivity newActivity = activityRecognizer.recognizeActivity(accelerometerData, databaseService);
+                    currentActivityState = newActivity;
+                    steps = activityRecognizer.getSteps(accelerometerData, databaseService, currentActivityState, accReadingsSinceLastUpdate);
+                }
+                updateParticles(steps);
+
+
+                final SubjectActivity currentActivityStatefinal = currentActivityState;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        actMiscText.setText("Activity: " + currentActivityStatefinal.name() + ". "+ localizationMethod.getMiscInfo());
+                    }
+                });
 
 
                 nextTick += SKIP_TICKS_UPDATE;
-                sleepTime = nextTick -System.currentTimeMillis();
+                sleepTime = nextTick - System.currentTimeMillis();
                 if(sleepTime > 0) {
                     try {
                         Thread.sleep(sleepTime);
@@ -405,40 +434,21 @@ public class LocateMeActivity extends AppCompatActivity {
                 }
 
             }
+
             sensorManager.unregisterListener(accelerometerListener);
 
         }
     }
 
-    private void updateParticles(long lastUpdateTime) {
-        float avgWalkingSpeed = 1.4f; // m/s
-        float distance = 0;
-        long currentTime = System.currentTimeMillis();
-        float timePassed = (currentTime - lastUpdateTime) / 1000.0f;
-        SubjectActivity a = SubjectActivity.LOADING;
-        if (accelerometerData.size() == NUM_ACC_READINGS)
-            a = activityRecognizer.recognizeActivity(accelerometerData, databaseService);
-        final SubjectActivity b = a;
+    private void updateParticles(int steps) {
 
-        if(a == SubjectActivity.WALKING) {
-            distance = timePassed * avgWalkingSpeed;
-        }
-        if (a == SubjectActivity.RUNNING)
-            distance = timePassed * avgWalkingSpeed * 2;
+        float distance = steps * 0.76f;
 
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                actMiscText.setText("Activity: " + b.name() + ". "+ localizationMethod.getMiscInfo());
-            }
-        });
         ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, distance, particles);
 
 
         ((ContinuousLocalization) localizationMethod).collideAndResample(particles, walls);
 
-
-        distanceCumulative += distance;
         update = true;
         return;
     }
