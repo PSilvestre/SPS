@@ -144,4 +144,17 @@ public class Utils {
         return correlationForEachDelay;
     }
 
+    public static int argMax(List<Float> elements) {
+        float maxVal = Float.MIN_VALUE;
+        int maxIndex = 0;
+
+        for(int i = 0; i < elements.size(); i++) {
+            if(elements.get(i) > maxVal) {
+                maxIndex = i;
+                maxVal = elements.get(i);
+            }
+        }
+        return  maxIndex;
+    }
+
 }

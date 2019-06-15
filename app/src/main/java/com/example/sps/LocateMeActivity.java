@@ -443,6 +443,7 @@ public class LocateMeActivity extends AppCompatActivity {
     private void updateParticles(int steps) {
 
         float distance = steps * 0.76f;
+        distanceCumulative += distance;
 
         ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, distance, particles);
 
