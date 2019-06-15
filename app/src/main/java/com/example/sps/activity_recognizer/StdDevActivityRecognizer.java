@@ -5,6 +5,7 @@ import com.example.sps.database.DatabaseService;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class StdDevActivityRecognizer implements ActivityRecognizer {
 
@@ -25,6 +26,15 @@ public class StdDevActivityRecognizer implements ActivityRecognizer {
             return SubjectActivity.WALKING;
         else
             return SubjectActivity.STANDING;
+    }
+
+    @Override
+    public int getSteps(Queue<FloatTriplet> sensorData, DatabaseService dBconnection, SubjectActivity currentActivityState, AtomicInteger accReadingsSinceLastUpdate) {
+        if(currentActivityState == SubjectActivity.STANDING) return 0;
+        if(currentActivityState == SubjectActivity.WALKING) return 1;
+        if(currentActivityState == SubjectActivity.RUNNING) return 2;
+        return 0;
+
     }
 
     public float[] calculateMeans(Queue<FloatTriplet> sensorData){
