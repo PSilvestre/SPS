@@ -377,8 +377,6 @@ public class LocateMeActivity extends AppCompatActivity {
 
         private boolean running = true;
 
-        private int stepsSinceLastUpdate = 0;
-
         private AtomicInteger accReadingsSinceLastUpdate = new AtomicInteger(0);
 
         public void setRunning(boolean running) {
@@ -570,13 +568,16 @@ public class LocateMeActivity extends AppCompatActivity {
     public void onPause() {
         super.onPause();
         this.unregisterReceiver(wifiBroadcastReceiver);
+        if (activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable)
+            ((continuousLocalizationRunnable) activeLocalizationRunnable).setRunning(false);
     }
 
     @Override
     public void onResume() {
         super.onResume();
         this.registerReceiver(wifiBroadcastReceiver, wifiIntentFilter);
-
+        if (activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable)
+            ((continuousLocalizationRunnable) activeLocalizationRunnable).setRunning(true);
     }
 
     @Override

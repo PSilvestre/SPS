@@ -63,7 +63,6 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
         if (currentActivityState == SubjectActivity.WALKING) {
             int numSteps = accReadingsSinceLastUpdate.get() / (optDelay / 2);
             int remainder = accReadingsSinceLastUpdate.get() % (optDelay / 2);
-            System.out.println("ACC_READINGS_SINCE = " + accReadingsSinceLastUpdate.get() + "\tNUM STEPS = " + numSteps + "\tREMAINDER = " + remainder + "\t OPT DELAY = " + optDelay);
 
             accReadingsSinceLastUpdate.set(remainder);
             return numSteps;

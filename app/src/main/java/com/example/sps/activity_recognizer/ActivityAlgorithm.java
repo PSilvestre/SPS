@@ -5,8 +5,7 @@ public enum ActivityAlgorithm {
 
     NORMAL_STD(new StdDevActivityRecognizer()),
     NORMAL_AUTOCORR(new AutocorrActivityRecognizer()),
-    NORMAL_CROSSCORR(new CrossCorrelationActivityRecognizer()),
-    EXTENDED_AUTOCORR(new ExtendedActivityRecognizer());
+    EXTENDED_CROSSCORR(new ExtendedActivityRecognizer());
 
 
 

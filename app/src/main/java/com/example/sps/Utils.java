@@ -4,7 +4,12 @@ import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.data_loader.WifiReading;
 import com.example.sps.data_loader.WifiScan;
 
+import org.apache.commons.math3.transform.DftNormalization;
+import org.apache.commons.math3.transform.FastFourierTransformer;
+import org.apache.commons.math3.transform.TransformType;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,6 +160,74 @@ public class Utils {
             }
         }
         return  maxIndex;
+    }
+
+
+    public static List<Float> fourierTransform(List<Float> sig) {
+
+        int MAX_POWER_OF_TWO = 16;
+
+        //array out of size constraints
+        if (sig.size() > Math.pow(2, MAX_POWER_OF_TWO) && sig.size() < 4)
+            return null;
+
+        //Get the List to Doubles, needed for the Transform function.
+        List<Double> signalTimeDomain = new ArrayList<>();
+        for (Float sample : sig)
+            signalTimeDomain.add((double) sample);
+
+
+        boolean isPowerOfTwo = false;
+        for (int i = 2; i < MAX_POWER_OF_TWO; i++) {
+            if (sig.size() / Math.pow(2, i) == 1)
+                isPowerOfTwo = true;
+        }
+
+
+        //pad the data to become of a length that is a power of 2.
+        //The fft will be different but will preserve the same information, therefore won't change the signal :
+        // https://dsp.stackexchange.com/questions/8792/fft-of-size-not-a-power-of-2
+        // (because our data can have means different from zero, we will pad it instead with the mean: may increase the contributions on the DC component
+        //  but if it is done only for signals with the same length, the contribution will be the same and they can still be compared on that frequency as well)
+        if (!isPowerOfTwo) {
+            double sigMean = mean(sig);
+            for (int i = 2; i < MAX_POWER_OF_TWO; i++) {
+                if (signalTimeDomain.size() < Math.pow(2, i)) {
+                    // pad until the size reaches the next power of 2
+                    while (signalTimeDomain.size() != Math.pow(2, i))
+                        signalTimeDomain.add(sigMean);
+
+                    break;
+                }
+            }
+        }
+
+
+        //Computes the Fourier Transform of a signal.
+        //The transform will be done in place, so the input must be double[][]
+        //UNITARY normalization - normalizes que output to the number of samples of the input
+        //FORWARD transformation type - to the frequency domain (backwards would be the inverse transform)
+
+        double[][] sigInput = new double[2][signalTimeDomain.size()];
+        for (int i = 0; i < 2; i++) {
+            for (int k = 0; k < signalTimeDomain.size(); k++) {
+                if (i == 1)
+                    sigInput[i][k] = 0; //imaginary part of the signal
+                else
+                    sigInput[i][k] = signalTimeDomain.get(k); //real part of the signal
+            }
+        }
+
+        FastFourierTransformer.transformInPlace(sigInput, DftNormalization.STANDARD,TransformType.FORWARD);
+
+        ArrayList<Float> magnitudesOutputSignal = new ArrayList<>();
+
+        //magnitude from real and imaginary part of the transform.
+        for (int k = 0; k < signalTimeDomain.size(); k++)
+            magnitudesOutputSignal.add((float) Math.sqrt(Math.pow(sigInput[0][k],2) + Math.pow(sigInput[1][k],2)));
+
+
+        return magnitudesOutputSignal;
     }
 
 }
