@@ -39,16 +39,13 @@
         android:layout_above="@id/localization_algorithm_spin"
         />
 
-    <Button
-        android:id="@+id/btn_step"
+    <CheckBox android:id="@+id/checkbox_detailed_sensor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentLeft="true"
-        android:layout_above="@+id/act_guess"
-        android:text="Zero Distance" />
-
-
+        android:text="Detailed Sensor"
+        android:onClick="onCheckboxClicked"
+        android:layout_above="@+id/cell_guess"
+        android:layout_marginBottom="10dp"/>
 
     <Spinner
         android:id="@+id/localization_algorithm_spin"

@@ -20,7 +20,7 @@ import static com.example.sps.LocateMeActivity.NUM_CELLS;
 
 public class ParticleFilterLocalization implements ContinuousLocalization {
 
-    public static final int NUM_PARTICLES = 3000;
+    public static final int NUM_PARTICLES = 1000;
     private NormalDistribution noiseDegrees = new NormalDistribution(0, 11.25); //before 22.5
     private NormalDistribution noiseDistance;
 

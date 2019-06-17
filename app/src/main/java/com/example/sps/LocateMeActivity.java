@@ -27,6 +27,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
@@ -48,6 +49,7 @@ import com.example.sps.map.Cell;
 import com.example.sps.map.WallPositions;
 
 import java.io.FileWriter;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -83,15 +85,21 @@ public class LocateMeActivity extends AppCompatActivity {
     public static final int UPDATE_FRAMES_PER_SECOND = 30;
     public static final int SKIP_TICKS_UPDATE = Math.round(1000.0f / UPDATE_FRAMES_PER_SECOND);
 
+    private static final int XOFFSET1 = 700;
+    private static final int XOFFSET2 = 1000;
+    private static final int YOFFSET = 5;
+
+
     private Canvas canvas;
-    private int xOffSet = 700;
-    private int yOffSet = 5;
+    private int xOffSet = XOFFSET1;
+    private int yOffSet = YOFFSET;
     int particleRadius = 4;
 
     private Button initialBeliefButton;
     private Button locateMeButton;
     private Button collectDataButton;
-    private Button takeStepButton;
+
+    private CheckBox checkBox;
 
     private TextView cellText;
     private TextView actMiscText;
@@ -133,12 +141,15 @@ public class LocateMeActivity extends AppCompatActivity {
 
     private boolean update = true;
 
+    private boolean plotDetailedSensor = false;
+
     private CopyOnWriteArrayList<Particle> particles;
 
     private WallPositions walls = new WallPositions();
 
     private Runnable activeLocalizationRunnable;
     private CountParticleWeightsThread activeCountParticlesThread;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,14 +161,8 @@ public class LocateMeActivity extends AppCompatActivity {
         initialBeliefButton = findViewById(R.id.btn_initial_belief);
         locateMeButton = findViewById(R.id.btn_locate_me);
         collectDataButton = findViewById(R.id.btn_collect_data);
-        takeStepButton = findViewById(R.id.btn_step);
-        takeStepButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                totalSteps = 0;
+        checkBox = findViewById(R.id.checkbox_detailed_sensor);
 
-            }
-        });
 
         cellText = findViewById(R.id.cell_guess);
         actMiscText = findViewById(R.id.act_guess);
@@ -178,12 +183,13 @@ public class LocateMeActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 localizationMethod = ((LocalizationAlgorithm) adapterView.getItemAtPosition(i)).getMethod();
-
+                plotDetailedSensor = false;
+                checkBox.setChecked(false);
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {
-                localizationMethod = localizationMethod; //Do nothing..
+                return;
             }
         });
 
@@ -292,28 +298,20 @@ public class LocateMeActivity extends AppCompatActivity {
                         public void run() {
                             if (update) {
 
+                                if (plotDetailedSensor) {
+                                    xOffSet = XOFFSET2; //move map to the side
+                                } else xOffSet = XOFFSET1;
+
                                 drawMap();
 
-                                ShapeDrawable drawable = new ShapeDrawable(new OvalShape());
-                                drawable.getPaint().setColor(Color.GREEN);
-                                float xOff = canvas.getWidth() / ((float) NUM_ACC_READINGS);
-                                int x = 0;
-                                Iterator<Float> accDataIt = accelerometerDataMagnitude.iterator();
-                                while(accDataIt.hasNext()){
-                                    int mag = (int) (5 * accDataIt.next());
-                                    drawable.setBounds((Math.round(xOff*x ) - particleRadius),
-                                            (400 + mag) - particleRadius,
-                                            Math.round(xOff * x) + particleRadius,
-                                            (400 + mag) + particleRadius);
-                                    drawable.draw(canvas);
-                                    x++;
-                                }
+                                if (plotDetailedSensor)
+                                    drawDetailedSensorData();
 
                                 if (localizationMethod instanceof ContinuousLocalization){
                                     drawArrow();
                                     Paint p = new Paint();
                                     p.setTextSize(50);
-                                    canvas.drawText("Steps: " + totalSteps , 20, 600, p);
+                                    canvas.drawText("Steps: " + totalSteps , 20, 40, p);
                                     if(particles != null) {
                                         drawParticles();
                                     }
@@ -337,11 +335,7 @@ public class LocateMeActivity extends AppCompatActivity {
                 }
 
             }
-        }).
-
-                start();
-
-
+        }).start();
     }
 
     public class singleLocalizationRunnable implements Runnable {
@@ -618,6 +612,7 @@ public class LocateMeActivity extends AppCompatActivity {
         cellProbabilities = new float[numCells];
         for (int i = 0; i < numCells; i++)
             cellProbabilities[i] = 1.0f / numCells;
+        totalSteps = 0;
     }
 
     public class simpleScanBroadcastReceiver extends BroadcastReceiver {
@@ -694,5 +689,55 @@ public class LocateMeActivity extends AppCompatActivity {
 
     public LocateMeActivity getLocateMeActivity(){
         return this;
+    }
+
+    public void onCheckboxClicked(View view) {
+        boolean checked = ((CheckBox) view).isChecked();
+
+        if (localizationMethod instanceof ContinuousLocalization)
+            plotDetailedSensor = checked;
+    }
+
+    public void drawDetailedSensorData() {
+        ShapeDrawable drawable = new ShapeDrawable(new OvalShape());
+
+
+        float xOff = 3;//canvas.getWidth() / ((float) NUM_ACC_READINGS);
+
+        int x = 0;
+        Iterator<Float> accDataIt = accelerometerDataMagnitude.iterator();
+
+        List<Float> accelerometerDataMagnitudeFFT = Utils.fourierTransform(new ArrayList<>(accelerometerDataMagnitude));
+
+        while (accDataIt.hasNext()) {
+            int mag = (int) (5 * accDataIt.next());
+            drawable.getPaint().setColor(Color.GREEN);
+            drawable.setBounds((Math.round(xOff * x) - particleRadius),
+                    (600 + mag) - particleRadius,
+                    Math.round(xOff * x) + particleRadius,
+                    (600 + mag) + particleRadius);
+            drawable.draw(canvas);
+
+            x++;
+        }
+
+        xOff = 5;
+        for (x = 1; x < accelerometerDataMagnitudeFFT.size() / 3; x++) {
+            int magFFT = (int) (accelerometerDataMagnitudeFFT.get(x) / 2);
+            drawable.getPaint().setColor(Color.BLUE);
+            drawable.setBounds((Math.round(xOff * x) - particleRadius),
+                    (1000 - magFFT) - particleRadius,
+                    Math.round(xOff * x) + particleRadius,
+                    (1000 - magFFT) + particleRadius);
+            drawable.draw(canvas);
+
+            //Draw 0 line
+            drawable.getPaint().setColor(Color.BLACK);
+            drawable.setBounds((Math.round(xOff * x) - particleRadius+1),
+                    (1000+5) - particleRadius+1,
+                    Math.round(xOff * x) + particleRadius-1,
+                    (1000+5) + particleRadius-1);
+            drawable.draw(canvas);
+        }
     }
 }

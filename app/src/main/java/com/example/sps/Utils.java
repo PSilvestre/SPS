@@ -18,14 +18,17 @@ public class Utils {
 
     public static final int NUM_BUCKETS_TO_USE = 100;
 
+
+    //calculates the means of
     public static Map<String, Float> calculateMeans(List<WifiScan> scansOfCell) {
         Map<String, Float> toReturn = new HashMap<>();
 
         //BSSID -> histogram of RSS values
         Map<String, int[]> count = new HashMap<>();
 
-
+        //Get all scans done in a certain cell
         for(WifiScan scan : scansOfCell) {
+            //get the results of each scan
             for(WifiReading reading : scan.getReadings()) {
 
                 if(!count.containsKey(reading.getBSSID())) {
@@ -161,7 +164,6 @@ public class Utils {
         }
         return  maxIndex;
     }
-
 
     public static List<Float> fourierTransform(List<Float> sig) {
 
