@@ -4,8 +4,10 @@ package com.example.sps.activity_recognizer;
 public enum ActivityAlgorithm {
 
     NORMAL_STD(new StdDevActivityRecognizer()),
+    STEP_DETECTOR(new StepDetectorActivityRecognizer()),
     NORMAL_AUTOCORR(new AutocorrActivityRecognizer()),
-    EXTENDED_CROSSCORR(new ExtendedActivityRecognizer());
+    CROSS_CORR(new CrossCorrActivityRecognizer()),
+    FOURIER_TRANSFORM(new CrossCorrActivityRecognizer());
 
 
 

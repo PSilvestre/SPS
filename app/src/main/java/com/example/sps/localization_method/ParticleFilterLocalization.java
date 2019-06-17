@@ -20,8 +20,8 @@ import static com.example.sps.LocateMeActivity.NUM_CELLS;
 
 public class ParticleFilterLocalization implements ContinuousLocalization {
 
-    public static final int NUM_PARTICLES = 1000;
-    private NormalDistribution noiseDegrees = new NormalDistribution(0, 22.5);
+    public static final int NUM_PARTICLES = 3000;
+    private NormalDistribution noiseDegrees = new NormalDistribution(0, 11.25); //before 22.5
     private NormalDistribution noiseDistance;
 
     @Override
@@ -91,7 +91,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         if (distance == 0)
             return;
 
-        noiseDistance = new NormalDistribution(0, distance); //TODO: find good STD_DEV
+        noiseDistance = new NormalDistribution(0, distance/4); //TODO: find good STD_DEV
         float norm;
         float angle;
         float toRadians = (float) (1.0f / 180 * Math.PI);
@@ -160,7 +160,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
                 areaDistributionWeights.add(new Pair<Integer, Double>(i, (double) (wallPositions.getCells().get(i).getAreaOfCell() / wallPositions.getTotalArea())));
             }
             EnumeratedDistribution<Integer> areaDistribution = new EnumeratedDistribution<>(areaDistributionWeights);
-            int startRandomSpreadIndex = (int) Math.floor(deadParticles.size() * 0.9);
+            int startRandomSpreadIndex = (int) Math.floor(deadParticles.size() * 0.98);
 
 
             for (int i = 0; i < deadParticles.size(); i++) {

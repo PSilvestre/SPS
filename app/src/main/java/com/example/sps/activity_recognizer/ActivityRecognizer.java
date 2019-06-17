@@ -10,8 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public interface ActivityRecognizer {
 
-    SubjectActivity recognizeActivity(Queue<FloatTriplet> sensorData, DatabaseService dBconnection);
+    SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dBconnection);
 
-    int getSteps(Queue<FloatTriplet> sensorData, DatabaseService dBconnection, SubjectActivity currentActivityState, AtomicInteger accReadingsSinceLastUpdate);
+    int getSteps(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dBconnection, SubjectActivity currentActivityState, AtomicInteger accReadingsSinceLastUpdate);
 
 }

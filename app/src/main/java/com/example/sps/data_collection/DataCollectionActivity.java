@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.example.sps.LocateMeActivity.ACCELEROMETER_SAMPLES_PER_SECOND;
 import static com.example.sps.LocateMeActivity.NUM_ACC_READINGS;
 
 
@@ -310,9 +311,10 @@ public class DataCollectionActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        Queue < FloatTriplet > data = new LinkedList<>();
-                        SensorEventListener listener = new AccelerometerListener(data, null);
-                        sensorManager.registerListener(listener, accelerometer, 50000);
+                        Queue < Float > data = new LinkedList<>();
+                        Queue < FloatTriplet > dataRaw = new LinkedList<>();
+                        SensorEventListener listener = new AccelerometerListener(data, dataRaw,null);
+                        sensorManager.registerListener(listener, accelerometer, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
                         while(data.size() < NUM_ACC_READINGS ){
                             try {
                                 Thread.sleep(50);
@@ -322,7 +324,7 @@ public class DataCollectionActivity extends AppCompatActivity {
                         }
                         sensorManager.unregisterListener(listener);
 
-                        dbConnection.insertRecording( ((LinkedList<FloatTriplet>) data).subList(0, NUM_ACC_READINGS),selectedActivity);
+                        dbConnection.insertRecording( ((LinkedList<FloatTriplet>) dataRaw).subList(0, NUM_ACC_READINGS),selectedActivity);
 
 
                         incActRecCounter();

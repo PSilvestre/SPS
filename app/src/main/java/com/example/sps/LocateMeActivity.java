@@ -35,6 +35,7 @@ import android.widget.TextView;
 import com.example.sps.activity_recognizer.ActivityAlgorithm;
 import com.example.sps.activity_recognizer.ActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
+import com.example.sps.activity_recognizer.StepDetectorActivityRecognizer;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
 import com.example.sps.database.DatabaseService;
@@ -79,7 +80,7 @@ public class LocateMeActivity extends AppCompatActivity {
     public static final int DRAW_FRAMES_PER_SECOND = 10;
     public static final int SKIP_TICKS_DRAW = Math.round(1000.0f / DRAW_FRAMES_PER_SECOND);
 
-    public static final int UPDATE_FRAMES_PER_SECOND = 40;
+    public static final int UPDATE_FRAMES_PER_SECOND = 30;
     public static final int SKIP_TICKS_UPDATE = Math.round(1000.0f / UPDATE_FRAMES_PER_SECOND);
 
     private Canvas canvas;
@@ -106,7 +107,8 @@ public class LocateMeActivity extends AppCompatActivity {
     private SensorManager sensorManager;
     private Sensor accelerometer;
 
-    private LinkedBlockingQueue<FloatTriplet> accelerometerData;
+    private LinkedBlockingQueue<Float> accelerometerDataMagnitude;
+    private LinkedBlockingQueue<FloatTriplet> accelerometerDataRaw;
 
     private List<ScanResult> scanData;
 
@@ -125,8 +127,9 @@ public class LocateMeActivity extends AppCompatActivity {
 
     private float mAzimuth = 0;
 
-    private float distanceCumulative = 0;
+    private int totalSteps = 0;
 
+    private AtomicInteger accReadingsSinceLastUpdate;
 
     private boolean update = true;
 
@@ -151,7 +154,7 @@ public class LocateMeActivity extends AppCompatActivity {
         takeStepButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                distanceCumulative = 0;
+                totalSteps = 0;
 
             }
         });
@@ -193,7 +196,13 @@ public class LocateMeActivity extends AppCompatActivity {
 
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                ActivityRecognizer previous = activityRecognizer;
                 activityRecognizer = ((ActivityAlgorithm) adapterView.getItemAtPosition(i)).getMethod();
+
+                if(previous instanceof StepDetectorActivityRecognizer)
+                    sensorManager.unregisterListener(((StepDetectorActivityRecognizer)previous));
+                if(activityRecognizer instanceof StepDetectorActivityRecognizer)
+                    sensorManager.registerListener((SensorEventListener) activityRecognizer, sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR), SensorManager.SENSOR_DELAY_FASTEST);
 
             }
 
@@ -207,9 +216,10 @@ public class LocateMeActivity extends AppCompatActivity {
         activityRecognizer = ActivityAlgorithm.NORMAL_STD.getMethod();
         localizationMethod = LocalizationAlgorithm.KNN_RSSI.getMethod();
 
-
-        accelerometerData = new LinkedBlockingQueue<>();
-        accelerometerListener = new AccelerometerListener(accelerometerData, null);
+        accReadingsSinceLastUpdate= new AtomicInteger(0);
+        accelerometerDataMagnitude = new LinkedBlockingQueue<>();
+        accelerometerDataRaw = new LinkedBlockingQueue<>();
+        accelerometerListener = new AccelerometerListener(accelerometerDataMagnitude, accelerometerDataRaw, accReadingsSinceLastUpdate);
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
@@ -283,11 +293,27 @@ public class LocateMeActivity extends AppCompatActivity {
                             if (update) {
 
                                 drawMap();
+
+                                ShapeDrawable drawable = new ShapeDrawable(new OvalShape());
+                                drawable.getPaint().setColor(Color.GREEN);
+                                float xOff = canvas.getWidth() / ((float) NUM_ACC_READINGS);
+                                int x = 0;
+                                Iterator<Float> accDataIt = accelerometerDataMagnitude.iterator();
+                                while(accDataIt.hasNext()){
+                                    int mag = (int) (5 * accDataIt.next());
+                                    drawable.setBounds((Math.round(xOff*x ) - particleRadius),
+                                            (400 + mag) - particleRadius,
+                                            Math.round(xOff * x) + particleRadius,
+                                            (400 + mag) + particleRadius);
+                                    drawable.draw(canvas);
+                                    x++;
+                                }
+
                                 if (localizationMethod instanceof ContinuousLocalization){
                                     drawArrow();
                                     Paint p = new Paint();
                                     p.setTextSize(50);
-                                    canvas.drawText("Distance: " + Math.round(distanceCumulative*100)/100.0f, 20, 600, p);
+                                    canvas.drawText("Steps: " + totalSteps , 20, 600, p);
                                     if(particles != null) {
                                         drawParticles();
                                     }
@@ -325,11 +351,12 @@ public class LocateMeActivity extends AppCompatActivity {
             //Start wifi scan
             wifiManager.startScan();
 
-            accelerometerData.removeAll(accelerometerData);
+            accelerometerDataMagnitude.removeAll(accelerometerDataMagnitude);
+            accelerometerDataRaw.removeAll(accelerometerDataRaw);
 
             sensorManager.registerListener(accelerometerListener, accelerometer, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
 
-            while (scanData == null || scanData.size() == 0 || accelerometerData.size() < NUM_ACC_READINGS) { //spin while data not ready
+            while (scanData == null || scanData.size() == 0 || accelerometerDataMagnitude.size() < NUM_ACC_READINGS) { //spin while data not ready
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
@@ -339,7 +366,7 @@ public class LocateMeActivity extends AppCompatActivity {
             //when finished, compute location and activity and post to user. unregister accelorometer listener
             sensorManager.unregisterListener(accelerometerListener);
 
-            final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerData, databaseService);
+            final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerDataMagnitude,accelerometerDataRaw, databaseService);
 ;
             cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
 
@@ -377,7 +404,6 @@ public class LocateMeActivity extends AppCompatActivity {
 
         private boolean running = true;
 
-        private AtomicInteger accReadingsSinceLastUpdate = new AtomicInteger(0);
 
         public void setRunning(boolean running) {
             this.running = running;
@@ -385,9 +411,9 @@ public class LocateMeActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-
+            accReadingsSinceLastUpdate.set(0);
             update = false;
-            sensorManager.registerListener(new AccelerometerListener(accelerometerData, accReadingsSinceLastUpdate), accelerometer, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
+            sensorManager.registerListener(accelerometerListener, accelerometer, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
             // Spread particles
             particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
 
@@ -406,10 +432,10 @@ public class LocateMeActivity extends AppCompatActivity {
                 if(currentActivityState == SubjectActivity.LOADING)
                     accReadingsSinceLastUpdate.set(0);
 
-                if (accelerometerData.size() == NUM_ACC_READINGS) {
-                    SubjectActivity newActivity = activityRecognizer.recognizeActivity(accelerometerData, databaseService);
+                if (accelerometerDataMagnitude.size() == NUM_ACC_READINGS) {
+                    SubjectActivity newActivity = activityRecognizer.recognizeActivity(accelerometerDataMagnitude, accelerometerDataRaw, databaseService);
                     currentActivityState = newActivity;
-                    steps = activityRecognizer.getSteps(accelerometerData, databaseService, currentActivityState, accReadingsSinceLastUpdate);
+                    steps = activityRecognizer.getSteps(accelerometerDataMagnitude, accelerometerDataRaw, databaseService, currentActivityState, accReadingsSinceLastUpdate);
                 }
                 updateParticles(steps);
 
@@ -443,7 +469,7 @@ public class LocateMeActivity extends AppCompatActivity {
     private void updateParticles(int steps) {
 
         float distance = steps * 0.76f;
-        distanceCumulative += distance;
+        totalSteps += steps;
 
         ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, distance, particles);
 

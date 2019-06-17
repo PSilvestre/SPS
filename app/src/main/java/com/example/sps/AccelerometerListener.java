@@ -6,8 +6,6 @@ import android.hardware.SensorEventListener;
 
 import com.example.sps.activity_recognizer.FloatTriplet;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -15,45 +13,46 @@ import static com.example.sps.LocateMeActivity.NUM_ACC_READINGS;
 
 public class AccelerometerListener implements SensorEventListener {
 
-    private static final float ALPHA = 0.25f;
+    private static final float ALPHA = 0.2f;
 
-    Queue<FloatTriplet> toPopulate;
+    Queue<Float> toPopulateMagnitude;
+    Queue<FloatTriplet> toPopulateRaw;
     AtomicInteger accReadingsSinceLastUpdate;
-    FloatTriplet previousSample;
+    Float previousSampleMagnitude;
+    FloatTriplet previousSampleRaw;
 
-    List<Float> latestXs;
-    List<Float> latestYs;
-    List<Float> latestZs;
 
-    public AccelerometerListener(Queue<FloatTriplet> toPopulate, AtomicInteger accReadingsSinceLastUpdate) {
-        this.toPopulate = toPopulate;
+    public AccelerometerListener(Queue<Float> toPopulateMagnitude, Queue<FloatTriplet> toPopulateRaw, AtomicInteger accReadingsSinceLastUpdate) {
+        this.toPopulateMagnitude = toPopulateMagnitude;
+        this.toPopulateRaw = toPopulateRaw;
         this.accReadingsSinceLastUpdate = accReadingsSinceLastUpdate;
-        this.previousSample = null;
-
-        latestXs = new ArrayList<>();
-        latestYs = new ArrayList<>();
-        latestZs = new ArrayList<>();
+        this.previousSampleMagnitude = null;
     }
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
-        if (toPopulate.size() >= NUM_ACC_READINGS)
-            toPopulate.poll();
-
-        FloatTriplet newFloatTriplet = new FloatTriplet(sensorEvent.values[0], sensorEvent.values[1], sensorEvent.values[2]);
-
-        if (previousSample != null) {
-            newFloatTriplet.setX(previousSample.getX() + ALPHA * (newFloatTriplet.getX() - previousSample.getX()));
-            newFloatTriplet.setY(previousSample.getY() + ALPHA * (newFloatTriplet.getY() - previousSample.getY()));
-            newFloatTriplet.setZ(previousSample.getZ() + ALPHA * (newFloatTriplet.getZ() - previousSample.getZ()));
-
+        if (toPopulateMagnitude.size() >= NUM_ACC_READINGS) {
+            toPopulateMagnitude.poll();
+            toPopulateRaw.poll();
         }
 
 
-        toPopulate.add(newFloatTriplet);
+        Float magnitude = (float) Math.sqrt(Math.pow(sensorEvent.values[0],2) + Math.pow(sensorEvent.values[1],2) + Math.pow(sensorEvent.values[2],2));
+        FloatTriplet raw = new FloatTriplet(sensorEvent.values[0],sensorEvent.values[1],sensorEvent.values[2]);
+        if (previousSampleMagnitude != null) {
+            magnitude = previousSampleMagnitude + ALPHA * (magnitude - previousSampleMagnitude);
+
+            raw.setX(previousSampleRaw.getX() + ALPHA * (raw.getX() - previousSampleRaw.getX()));
+            raw.setY(previousSampleRaw.getY() + ALPHA * (raw.getY() - previousSampleRaw.getY()));
+            raw.setZ(previousSampleRaw.getZ() + ALPHA * (raw.getZ() - previousSampleRaw.getZ()));
+        }
 
 
-        previousSample = newFloatTriplet;
+        toPopulateMagnitude.add(magnitude);
+        toPopulateRaw.add(raw);
+
+        previousSampleMagnitude = magnitude;
+        previousSampleRaw = raw;
         if (accReadingsSinceLastUpdate != null)
             accReadingsSinceLastUpdate.incrementAndGet();
     }

@@ -35,4 +35,8 @@ public class FloatTriplet {
     public void setZ(float z) {
         this.z = z;
     }
+
+    public float getMagnitude(){
+        return (float) Math.sqrt(Math.pow(this.getX(),2) + Math.pow(this.getY(),2) + Math.pow(this.getZ(),2));
+    }
 }
