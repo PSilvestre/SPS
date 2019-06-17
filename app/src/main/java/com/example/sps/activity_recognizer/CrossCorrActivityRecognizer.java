@@ -111,7 +111,7 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
                 //Get overall correlation
                 List<Float> correlationsForEachDelayTotal = new ArrayList<>();
                 for(int i = 0; i < correlationsForEachDelayX.size(); i++){
-                    correlationsForEachDelayTotal.add((correlationsForEachDelayX.get(i) + correlationsForEachDelayY.get(i) + correlationsForEachDelayZ.get(i))/3);
+                    correlationsForEachDelayTotal.add((Math.abs(correlationsForEachDelayX.get(i)) + Math.abs(correlationsForEachDelayY.get(i)) + Math.abs(correlationsForEachDelayZ.get(i)))/3);
                 }
 
                 //Find the where there is the best correlation
