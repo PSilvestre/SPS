@@ -31,7 +31,6 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
     public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection) {
 
         List<Float> sensorDataMagnitudeList = new ArrayList<>(sensorData);
-        Collections.reverse(sensorDataMagnitudeList);
 
         List<Float> mostRecent = sensorDataMagnitudeList.subList(sensorDataMagnitudeList.size()/4 * 3, sensorDataMagnitudeList.size());
 
@@ -52,7 +51,7 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
         int largestCorrelationIndex = Utils.argMax(correlationsForEachDelay);
         float correlation = correlationsForEachDelay.get(largestCorrelationIndex);
 
-        if (correlation > 0.7  ) {
+        if (correlation > 0.7 ) {
             if (optDelay == 0)
                 optDelay = largestCorrelationIndex + minDelay;
             else

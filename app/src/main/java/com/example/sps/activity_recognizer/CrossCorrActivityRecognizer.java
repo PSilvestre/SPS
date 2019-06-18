@@ -33,8 +33,8 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
     public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection) {
 
 
-        int minDelay = 40;
-        int maxDelay = 100;
+        int minDelay = 10;
+        int maxDelay = 90;
 
         List<Float> sensorDataMagnitudeList = new ArrayList<>(sensorData);
 
@@ -67,10 +67,10 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
         activitiesToIdentify.add(SubjectActivity.WALKING);
         activitiesToIdentify.add(SubjectActivity.RUNNING);
         activitiesToIdentify.add(SubjectActivity.STAIRS);
-        activitiesToIdentify.add(SubjectActivity.ELEVATOR_UP);
-        activitiesToIdentify.add(SubjectActivity.ELEVATOR_DOWN);
+        activitiesToIdentify.add(SubjectActivity.SIDE_STEPPING_RIGHT);
+        activitiesToIdentify.add(SubjectActivity.SIDE_STEPPING_LEFT);
 
-
+        if (stdDev < 0.5) {lastState = SubjectActivity.STANDING;return SubjectActivity.STANDING;}
 
         for(SubjectActivity activityToIdentify: activitiesToIdentify) {
             //get the recordings for each activity (if there are any, else continue)
@@ -101,17 +101,17 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
                 //Get overall correlation
                 List<Float> correlationsForEachDelayTotal = new ArrayList<>();
                 for(int i = 0; i < correlationsForEachDelayX.size(); i++){
-                    correlationsForEachDelayTotal.add((Math.abs(correlationsForEachDelayX.get(i)) + Math.abs(correlationsForEachDelayY.get(i)) + Math.abs(correlationsForEachDelayZ.get(i)))/3);
+                    correlationsForEachDelayTotal.add((correlationsForEachDelayX.get(i) + correlationsForEachDelayY.get(i) + correlationsForEachDelayZ.get(i))/3);
                 }
 
                 //Find the where there is the best correlation
                 int largestCorrelationIndex = Utils.argMax(correlationsForEachDelayTotal);
                 float correlationMax = correlationsForEachDelayTotal.get(largestCorrelationIndex);
-                correlationMax /= sensorDataListFromDatabase.size();
 
                 if(maxCorrelationPerActivity.containsKey(activityToIdentify)){
                     float currentMaxCorr = maxCorrelationPerActivity.get(activityToIdentify);
-                    maxCorrelationPerActivity.put(activityToIdentify, currentMaxCorr + correlationMax);
+                    if(currentMaxCorr < correlationMax)
+                        maxCorrelationPerActivity.put(activityToIdentify,  correlationMax);
                 }else{
                     maxCorrelationPerActivity.put(activityToIdentify, correlationMax);
                 }
@@ -132,7 +132,6 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
         }
         if(maxCorrelationPerActivity.get(maxCorrelated) > 0.7) {
 
-            if (stdDev < 0.5 && maxCorrelated != SubjectActivity.ELEVATOR_DOWN && maxCorrelated != SubjectActivity.ELEVATOR_UP) {lastState = SubjectActivity.STANDING;return SubjectActivity.STANDING;}
             lastState = maxCorrelated;
             return maxCorrelated;
         }
