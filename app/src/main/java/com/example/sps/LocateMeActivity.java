@@ -56,20 +56,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-//TODO: IMPLEMENT way of automatic finding statistics on measurements (auto measure save?)
-
-
-//TODO: implement graphs of the different activities like "climbing the stairs", running
-// walking with phone in pocket, walking with phone in the hand
-//TODO: use another sensors to sense direction, like magnetometer/compass
-
-//TODO (from old main):
-//   - implement x ScansPerCell button to run all scans in one;
-//   - implement just one broadcast catcher (like my example) BUT have it written to diff files;
-//   - (if passing to the other file is needed, don't forget to carry the things that prevent crashing like pauses and resumes
-
-
-//TODO: UI, duh
 
 
 public class LocateMeActivity extends AppCompatActivity {

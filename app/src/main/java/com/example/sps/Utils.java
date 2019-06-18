@@ -1,6 +1,5 @@
 package com.example.sps;
 
-import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.data_loader.WifiReading;
 import com.example.sps.data_loader.WifiScan;
 
@@ -9,7 +8,6 @@ import org.apache.commons.math3.transform.FastFourierTransformer;
 import org.apache.commons.math3.transform.TransformType;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +17,7 @@ public class Utils {
     public static final int NUM_BUCKETS_TO_USE = 100;
 
 
-    //calculates the means of
+    //calculates the means of the RSSI measurement for each BSSID.
     public static Map<String, Float> calculateMeans(List<WifiScan> scansOfCell) {
         Map<String, Float> toReturn = new HashMap<>();
 

@@ -17,7 +17,7 @@ public class Cell {
     public Cell(int cellNumber, float[] walls, boolean[] traversable) {
         this.walls = walls;
         this.cellNumber = cellNumber;
-        this.traversable = traversable; //TODO: the walls should be transversable, not the cells..
+        this.traversable = traversable;
     }
 
     public float getAreaOfCell() {

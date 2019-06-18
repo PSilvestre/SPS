@@ -91,7 +91,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         if (distance == 0)
             return;
 
-        noiseDistance = new NormalDistribution(0, distance/4); //TODO: find good STD_DEV
+        noiseDistance = new NormalDistribution(0, distance/4);
         float norm;
         float angle;
         float toRadians = (float) (1.0f / 180 * Math.PI);

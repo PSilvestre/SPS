@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-//TODO we are using only z axis right now! we can do for all three and check periodicities of each one!
+
 class AutocorrActivityRecognizer implements ActivityRecognizer {
 
 

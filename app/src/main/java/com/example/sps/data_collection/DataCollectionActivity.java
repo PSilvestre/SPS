@@ -159,7 +159,7 @@ public class DataCollectionActivity extends AppCompatActivity {
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //TODO Fix Direction (with android magnetometer)
+                //TODO Fix Direction (with android magnetometer)---- worth it now?
                 scanInfo = new ScanInfo(wifiManager.startScan(), Integer.parseInt(txtScanningCell.getText().toString()), Direction.EAST);
 
                 updateTxtScanStatus(scanInfo.isScanSuccessful());

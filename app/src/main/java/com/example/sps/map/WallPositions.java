@@ -26,7 +26,7 @@ public class WallPositions {
         cells.add(new Cell(8, new float[]{6.1f, 20f, 8.2f, 16.0f}, new boolean[]{false, true, false, true}));
         cells.add(new Cell(9, new float[]{6.1f, 16f, 8.2f, 12.0f}, new boolean[]{false, true, false, true}));
         cells.add(new Cell(10, new float[]{6.1f, 12f, 8.2f, 8.0f}, new boolean[]{true, true, false, true}));
-        cells.add(new Cell(11, new float[]{0f, 12f, 6.1f, 8.0f}, new boolean[]{false, false, true, false})); //TODO ASK about door!
+        cells.add(new Cell(11, new float[]{0f, 12f, 6.1f, 8.0f}, new boolean[]{false, false, true, false}));
         cells.add(new Cell(12, new float[]{6.1f, 8f, 8.2f, 4.0f}, new boolean[]{true, true, false, true}));
         cells.add(new Cell(13, new float[]{0f, 8f, 6.1f, 4.0f}, new boolean[]{false, false, true, false}));
         cells.add(new Cell(14, new float[]{11.3f, 4f, 14.3f, 0.0f}, new boolean[]{true, false, false, false}));
