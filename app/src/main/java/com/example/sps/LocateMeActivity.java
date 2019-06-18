@@ -121,6 +121,9 @@ public class LocateMeActivity extends AppCompatActivity {
 
     private float mAzimuth = 0;
 
+    private LinkedBlockingQueue<Float> azimuthList;
+
+
     private int totalSteps = 0;
 
     private AtomicInteger accReadingsSinceLastUpdate;
@@ -157,6 +160,7 @@ public class LocateMeActivity extends AppCompatActivity {
         locSpin = findViewById(R.id.localization_algorithm_spin);
         actSpin = findViewById(R.id.activity_detection_spin);
         setInitialBelief();
+        azimuthList= new LinkedBlockingQueue<>();
 
 
         //Set Adapter for the Localization Spinner
@@ -213,6 +217,8 @@ public class LocateMeActivity extends AppCompatActivity {
         accelerometerDataRaw = new LinkedBlockingQueue<>();
         accelerometerListener = new AccelerometerListener(accelerometerDataMagnitude, accelerometerDataRaw, accReadingsSinceLastUpdate);
 
+
+
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
         wifiBroadcastReceiver = new simpleScanBroadcastReceiver();
@@ -266,7 +272,7 @@ public class LocateMeActivity extends AppCompatActivity {
         });
 
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        sensorManager.registerListener(new RotationListener(), rotationSensor, 100000);
+        sensorManager.registerListener(new RotationListener(), rotationSensor, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
 
 
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -413,6 +419,7 @@ public class LocateMeActivity extends AppCompatActivity {
                     accReadingsSinceLastUpdate.set(0);
 
                 if (accelerometerDataMagnitude.size() == NUM_ACC_READINGS) {
+
                     SubjectActivity newActivity = activityRecognizer.recognizeActivity(accelerometerDataMagnitude, accelerometerDataRaw, databaseService);
                     currentActivityState = newActivity;
                     steps = activityRecognizer.getSteps(accelerometerDataMagnitude, accelerometerDataRaw, databaseService, currentActivityState, accReadingsSinceLastUpdate);
@@ -451,7 +458,7 @@ public class LocateMeActivity extends AppCompatActivity {
         float distance = steps * 0.76f;
         totalSteps += steps;
 
-        ((ContinuousLocalization) localizationMethod).updateParticles(mAzimuth, distance, particles);
+        ((ContinuousLocalization) localizationMethod).updateParticles(azimuthList.peek(), distance, particles);
 
 
         ((ContinuousLocalization) localizationMethod).collideAndResample(particles, walls);
@@ -495,6 +502,12 @@ public class LocateMeActivity extends AppCompatActivity {
                 SensorManager.getRotationMatrixFromVector(rMat, sensorEvent.values);
                 // get the azimuth value (orientation[0]) in degree
                 mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 180) % 360;
+
+                if(azimuthList.size() >= NUM_ACC_READINGS) {
+                    azimuthList.poll();
+                }
+                azimuthList.add(mAzimuth);
+
 
             }
         }
@@ -694,6 +707,9 @@ public class LocateMeActivity extends AppCompatActivity {
         Iterator<Float> accDataIt = accelerometerDataMagnitude.iterator();
 
         List<Float> accelerometerDataMagnitudeFFT = Utils.fourierTransform(new ArrayList<>(accelerometerDataMagnitude));
+        List<Float> except0 = accelerometerDataMagnitudeFFT.subList(1, accelerometerDataMagnitudeFFT.size());
+        int highestHz = Utils.argMax(except0);
+        System.out.println(highestHz+1 + ": " + except0.get(highestHz));
 
         while (accDataIt.hasNext()) {
             int mag = (int) (5 * accDataIt.next());

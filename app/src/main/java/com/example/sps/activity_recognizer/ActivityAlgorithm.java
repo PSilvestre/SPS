@@ -7,7 +7,7 @@ public enum ActivityAlgorithm {
     STEP_DETECTOR(new StepDetectorActivityRecognizer()),
     NORMAL_AUTOCORR(new AutocorrActivityRecognizer()),
     CROSS_CORR(new CrossCorrActivityRecognizer()),
-    FOURIER_TRANSFORM(new CrossCorrActivityRecognizer());
+    FOURIER_TRANSFORM(new FourierTransformActivityRecognizer());
 
 
 
