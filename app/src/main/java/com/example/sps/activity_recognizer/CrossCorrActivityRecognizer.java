@@ -27,7 +27,7 @@ whatever happens first.
 
 class CrossCorrActivityRecognizer implements ActivityRecognizer {
 
-
+    SubjectActivity lastState = SubjectActivity.STANDING;
 
     @Override
     public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection) {
@@ -38,10 +38,12 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
 
         List<Float> sensorDataMagnitudeList = new ArrayList<>(sensorData);
 
-        float mean = Utils.mean(sensorDataMagnitudeList);
-        float stdDev = Utils.stdDeviation(sensorDataMagnitudeList, mean);
+        List<Float> mostRecent = sensorDataMagnitudeList.subList(sensorDataMagnitudeList.size()/4 * 3, sensorDataMagnitudeList.size());
 
-        if (stdDev < 0.8) {return SubjectActivity.STANDING;}
+        float mean = Utils.mean(mostRecent);
+        float stdDev = Utils.stdDeviation(mostRecent, mean);
+
+
 
         //Get the magnitude of the acceleration sensors
         List<Float> sensorDataX = new ArrayList<>();
@@ -55,18 +57,6 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
         }
 
         Map<SubjectActivity, Float> maxCorrelationPerActivity = new HashMap<>();
-
-        /*
-        //Compute FFT of the current data
-        List<Float> sensorDataTransform = Utils.fourierTransform(sensorDataMagnitudeList);
-
-        //Meaning of each index: n-th bin = n * sample frequency / NUMBER OF BINS
-        for (int i = 0; i < sensorDataTransform.size() / 2; i++)
-            System.out.println("The magnitude of frequency " + ((float) i) * ACCELEROMETER_SAMPLES_PER_SECOND / sensorDataTransform.size() +
-                                " Hz is " + sensorDataTransform.get(i));
-        //there isn't really a point in doing the fft if we are just sampling at 50hz, because we can only measure until 25hz without ambiguity.
-        */
-
 
 
 
@@ -130,20 +120,6 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
 
         }
 
-        //NOTE: the following can be done at the same time as the correlations, so that only one iteration is needed
-
-        //In case none of the correlations worked, try some FourierTransforms
-
-        //List<Float> sensorDataTransform = Utils.fourierTransform(sensorDataMagnitudeList);
-
-        //Meaning of each index: n-th bin = n * sample frequency / NUMBER OF BINS
-
-
-        //note that the 0 bin will have the maximum always.
-
-        // we can correlate each transform... Discuss features.
-
-
 
         SubjectActivity maxCorrelated = SubjectActivity.STANDING;
         float maxCorrelationUntilNow = 0;
@@ -154,9 +130,14 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
                 maxCorrelated = key;
             }
         }
+        if(maxCorrelationPerActivity.get(maxCorrelated) > 0.7) {
 
+            if (stdDev < 0.5 && maxCorrelated != SubjectActivity.ELEVATOR_DOWN && maxCorrelated != SubjectActivity.ELEVATOR_UP) {lastState = SubjectActivity.STANDING;return SubjectActivity.STANDING;}
+            lastState = maxCorrelated;
+            return maxCorrelated;
+        }
 
-        return maxCorrelated;
+        return lastState;
     }
 
 
@@ -166,13 +147,10 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
     public int getSteps(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection, SubjectActivity currentActivityState, AtomicInteger accReadingsSinceLastUpdate) {
         if (currentActivityState == SubjectActivity.WALKING || currentActivityState == SubjectActivity.RUNNING) {
             int numSteps = accReadingsSinceLastUpdate.get() / (60 / 2);
-            int remainder = accReadingsSinceLastUpdate.get() % (60 / 2);
-            //System.out.println("well, comes here..ACC_READINGS_SINCE = " + accReadingsSinceLastUpdate.get() + "\tNUM STEPS = " + numSteps + "\tREMAINDER = " + remainder + "\t OPT DELAY = " + 60);
-
-            accReadingsSinceLastUpdate.set(remainder);
+            accReadingsSinceLastUpdate.addAndGet(-numSteps * (60/2));
 
             if (currentActivityState == SubjectActivity.RUNNING) {
-                numSteps *= 2; // "Thomas Running invented running when he tried to walk twice" -> running = 2 * walk
+                numSteps *= 2; // "Thomas Running invented running when he tried to walk twice at the same time" -> running = 2 * walk
             }
             return numSteps;
         }

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.example.sps.LocateMeActivity.NUM_ACC_READINGS;
+
 //TODO we are using only z axis right now! we can do for all three and check periodicities of each one!
 class AutocorrActivityRecognizer implements ActivityRecognizer {
 
@@ -31,10 +33,12 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
         List<Float> sensorDataMagnitudeList = new ArrayList<>(sensorData);
         Collections.reverse(sensorDataMagnitudeList);
 
-        float mean = Utils.mean(sensorDataMagnitudeList);
-        float stdDev = Utils.stdDeviation(sensorDataMagnitudeList, mean);
+        List<Float> mostRecent = sensorDataMagnitudeList.subList(sensorDataMagnitudeList.size()/4 * 3, sensorDataMagnitudeList.size());
 
-        if (stdDev < 1) { lastState = SubjectActivity.STANDING; return SubjectActivity.STANDING;};
+        float mean = Utils.mean(mostRecent);
+        float stdDev = Utils.stdDeviation(mostRecent, mean);
+
+        if (stdDev < 0.5) { lastState = SubjectActivity.STANDING; return SubjectActivity.STANDING;};
         if (stdDev > 2) {  return SubjectActivity.JERKY_MOTION;}
 
         if (optDelay != 0) {
@@ -63,10 +67,9 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
     @Override
     public int getSteps(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dBconnection, SubjectActivity currentActivityState, AtomicInteger accReadingsSinceLastUpdate) {
         if (currentActivityState == SubjectActivity.WALKING || (currentActivityState == SubjectActivity.JERKY_MOTION  && lastState == SubjectActivity.WALKING)) {
-            int numSteps = accReadingsSinceLastUpdate.get() / (optDelay / 2);
-            int remainder = accReadingsSinceLastUpdate.get() % (optDelay / 2);
-
-            accReadingsSinceLastUpdate.set(remainder);
+            int numUpdates = accReadingsSinceLastUpdate.get();
+            int numSteps = numUpdates / (optDelay / 2);
+            accReadingsSinceLastUpdate.addAndGet(-(optDelay / 2)*numSteps);
             return numSteps;
         }
         accReadingsSinceLastUpdate.set(0);
