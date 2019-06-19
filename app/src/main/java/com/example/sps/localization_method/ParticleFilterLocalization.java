@@ -96,6 +96,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         float angle;
         float toRadians = (float) (1.0f / 180 * Math.PI);
         for (Particle p : particles) {
+            p.incTimeAlive();
             norm = (float) (distance + noiseDistance.sample());
             angle = (float) (azi + noiseDegrees.sample());
             p.setX((float) (p.getX() + norm * Math.cos(angle * toRadians)));
@@ -124,7 +125,6 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
                 if (walls.getDrawable().get(i).isParticleInside(p)) {
                     p.setCell(i);
                     cellFound = true;
-                    p.incTimeAlive();
                     totalTimeAlive += p.getTimeAlive();
                     break;
                 }

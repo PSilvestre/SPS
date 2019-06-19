@@ -28,18 +28,18 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
     private SubjectActivity lastState = SubjectActivity.STANDING;
 
     @Override
-    public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection) {
+    public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection, AtomicInteger accReadingsSinceLastUpdate) {
 
         List<Float> sensorDataMagnitudeList = new ArrayList<>(sensorData);
         Collections.reverse(sensorDataMagnitudeList);
 
-        List<Float> mostRecent = sensorDataMagnitudeList.subList(sensorDataMagnitudeList.size()/4 * 3, sensorDataMagnitudeList.size());
+        List<Float> oldest = sensorDataMagnitudeList.subList(sensorDataMagnitudeList.size()/4 * 3, sensorDataMagnitudeList.size());
 
-        float mean = Utils.mean(mostRecent);
-        float stdDev = Utils.stdDeviation(mostRecent, mean);
+        float mean = Utils.mean(oldest);
+        float stdDev = Utils.stdDeviation(oldest, mean);
 
-        if (stdDev < 0.5) { lastState = SubjectActivity.STANDING; return SubjectActivity.STANDING;};
-        if (stdDev > 2) {  return SubjectActivity.JERKY_MOTION;}
+        if (stdDev < 0.4) { lastState = SubjectActivity.STANDING; return SubjectActivity.STANDING;};
+        if (stdDev > 3) {  return SubjectActivity.JERKY_MOTION;}
 
         if (optDelay != 0) {
             minDelay = Math.max(optDelay - 10, MIN_DELAY);

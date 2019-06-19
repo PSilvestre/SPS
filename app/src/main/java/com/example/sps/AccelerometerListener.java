@@ -13,7 +13,7 @@ import static com.example.sps.LocateMeActivity.NUM_ACC_READINGS;
 
 public class AccelerometerListener implements SensorEventListener {
 
-    private static final float ALPHA = 0.2f;
+    private static final float ALPHA = 0.25f;
 
     Queue<Float> toPopulateMagnitude;
     Queue<FloatTriplet> toPopulateRaw;

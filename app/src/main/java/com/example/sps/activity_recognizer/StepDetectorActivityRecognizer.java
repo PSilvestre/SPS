@@ -14,7 +14,7 @@ public class StepDetectorActivityRecognizer implements ActivityRecognizer, Senso
     private AtomicInteger steps = new AtomicInteger(0);
 
     @Override
-    public SubjectActivity recognizeActivity(Queue<Float> sensorData,Queue<FloatTriplet> sensorDataRaw, DatabaseService dBconnection) {
+    public SubjectActivity recognizeActivity(Queue<Float> sensorData,Queue<FloatTriplet> sensorDataRaw, DatabaseService dBconnection, AtomicInteger accReadingsSinceLastUpdate) {
         if(steps.get() > 0)
             return SubjectActivity.WALKING;
         return SubjectActivity.STANDING;

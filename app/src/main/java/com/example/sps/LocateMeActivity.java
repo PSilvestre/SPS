@@ -36,6 +36,7 @@ import android.widget.TextView;
 import com.example.sps.activity_recognizer.ActivityAlgorithm;
 import com.example.sps.activity_recognizer.ActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
+import com.example.sps.activity_recognizer.FourierTransformActivityRecognizer;
 import com.example.sps.activity_recognizer.StepDetectorActivityRecognizer;
 import com.example.sps.activity_recognizer.SubjectActivity;
 import com.example.sps.data_collection.DataCollectionActivity;
@@ -50,6 +51,7 @@ import com.example.sps.map.WallPositions;
 
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -174,7 +176,7 @@ public class LocateMeActivity extends AppCompatActivity {
         locSpin = findViewById(R.id.localization_algorithm_spin);
         actSpin = findViewById(R.id.activity_detection_spin);
         setInitialBelief();
-        azimuthList= new LinkedBlockingQueue<>();
+        azimuthList = new LinkedBlockingQueue<>();
 
 
         //Set Adapter for the Localization Spinner
@@ -209,9 +211,9 @@ public class LocateMeActivity extends AppCompatActivity {
                 ActivityRecognizer previous = activityRecognizer;
                 activityRecognizer = ((ActivityAlgorithm) adapterView.getItemAtPosition(i)).getMethod();
 
-                if(previous instanceof StepDetectorActivityRecognizer)
-                    sensorManager.unregisterListener(((StepDetectorActivityRecognizer)previous));
-                if(activityRecognizer instanceof StepDetectorActivityRecognizer)
+                if (previous instanceof StepDetectorActivityRecognizer)
+                    sensorManager.unregisterListener(((StepDetectorActivityRecognizer) previous));
+                if (activityRecognizer instanceof StepDetectorActivityRecognizer)
                     sensorManager.registerListener((SensorEventListener) activityRecognizer, sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR), SensorManager.SENSOR_DELAY_FASTEST);
 
             }
@@ -226,11 +228,10 @@ public class LocateMeActivity extends AppCompatActivity {
         activityRecognizer = ActivityAlgorithm.NORMAL_STD.getMethod();
         localizationMethod = LocalizationAlgorithm.KNN_RSSI.getMethod();
 
-        accReadingsSinceLastUpdate= new AtomicInteger(0);
+        accReadingsSinceLastUpdate = new AtomicInteger(0);
         accelerometerDataMagnitude = new LinkedBlockingQueue<>();
         accelerometerDataRaw = new LinkedBlockingQueue<>();
         accelerometerListener = new AccelerometerListener(accelerometerDataMagnitude, accelerometerDataRaw, accReadingsSinceLastUpdate);
-
 
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -261,7 +262,7 @@ public class LocateMeActivity extends AppCompatActivity {
                 if (!(localizationMethod instanceof ContinuousLocalization))
                     new Thread(new singleLocalizationRunnable()).start();
                 else {
-                    if(activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable) {
+                    if (activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable) {
                         ((continuousLocalizationRunnable) activeLocalizationRunnable).setRunning(false);
                         activeCountParticlesThread.setRunning(false);
                         try {
@@ -286,7 +287,7 @@ public class LocateMeActivity extends AppCompatActivity {
         });
 
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        sensorManager.registerListener(new RotationListener(), rotationSensor, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
+        sensorManager.registerListener(new RotationListener(), rotationSensor, 1000000 / ACCELEROMETER_SAMPLES_PER_SECOND);
 
 
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -313,12 +314,12 @@ public class LocateMeActivity extends AppCompatActivity {
                                 if (plotDetailedSensor)
                                     drawDetailedSensorData();
 
-                                if (localizationMethod instanceof ContinuousLocalization){
+                                if (localizationMethod instanceof ContinuousLocalization) {
                                     drawArrow();
                                     Paint p = new Paint();
                                     p.setTextSize(50);
-                                    canvas.drawText("Steps: " + totalSteps , 20, 40, p);
-                                    if(particles != null) {
+                                    canvas.drawText("Steps: " + totalSteps, 20, 40, p);
+                                    if (particles != null) {
                                         drawParticles();
                                     }
 
@@ -330,8 +331,8 @@ public class LocateMeActivity extends AppCompatActivity {
                         }
                     });
                     nextTick += SKIP_TICKS_DRAW;
-                    sleepTime = nextTick -System.currentTimeMillis();
-                    if(sleepTime > 0) {
+                    sleepTime = nextTick - System.currentTimeMillis();
+                    if (sleepTime > 0) {
                         try {
                             Thread.sleep(sleepTime);
                         } catch (InterruptedException e) {
@@ -354,7 +355,7 @@ public class LocateMeActivity extends AppCompatActivity {
             accelerometerDataMagnitude.removeAll(accelerometerDataMagnitude);
             accelerometerDataRaw.removeAll(accelerometerDataRaw);
 
-            sensorManager.registerListener(accelerometerListener, accelerometer, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
+            sensorManager.registerListener(accelerometerListener, accelerometer, 1000000 / ACCELEROMETER_SAMPLES_PER_SECOND);
 
             while (scanData == null || scanData.size() == 0 || accelerometerDataMagnitude.size() < NUM_ACC_READINGS) { //spin while data not ready
                 try {
@@ -366,8 +367,8 @@ public class LocateMeActivity extends AppCompatActivity {
             //when finished, compute location and activity and post to user. unregister accelorometer listener
             sensorManager.unregisterListener(accelerometerListener);
 
-            final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerDataMagnitude,accelerometerDataRaw, databaseService);
-;
+            final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerDataMagnitude, accelerometerDataRaw, databaseService, accReadingsSinceLastUpdate);
+            ;
             cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
 
             final int cell = getIndexOfLargest(cellProbabilities) + 1;
@@ -413,7 +414,12 @@ public class LocateMeActivity extends AppCompatActivity {
         public void run() {
             accReadingsSinceLastUpdate.set(0);
             update = false;
-            sensorManager.registerListener(accelerometerListener, accelerometer, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
+
+            if(activityRecognizer instanceof FourierTransformActivityRecognizer)
+                sensorManager.registerListener(accelerometerListener, accelerometer, (int) (1000000.0f / (ACCELEROMETER_SAMPLES_PER_SECOND/2)));
+            else
+                sensorManager.registerListener(accelerometerListener, accelerometer, (int) (1000000.0f / (ACCELEROMETER_SAMPLES_PER_SECOND)));
+
             // Spread particles
             particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
 
@@ -429,12 +435,12 @@ public class LocateMeActivity extends AppCompatActivity {
             while (localizationMethod instanceof ContinuousLocalization && running) {
                 steps = 0;
 
-                if(currentActivityState == SubjectActivity.LOADING)
+                if (currentActivityState == SubjectActivity.LOADING)
                     accReadingsSinceLastUpdate.set(0);
 
                 if (accelerometerDataMagnitude.size() == NUM_ACC_READINGS) {
 
-                    SubjectActivity newActivity = activityRecognizer.recognizeActivity(accelerometerDataMagnitude, accelerometerDataRaw, databaseService);
+                    SubjectActivity newActivity = activityRecognizer.recognizeActivity(accelerometerDataMagnitude, accelerometerDataRaw, databaseService, accReadingsSinceLastUpdate);
                     currentActivityState = newActivity;
                     steps = activityRecognizer.getSteps(accelerometerDataMagnitude, accelerometerDataRaw, databaseService, currentActivityState, accReadingsSinceLastUpdate);
                 }
@@ -445,14 +451,14 @@ public class LocateMeActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        actMiscText.setText("Activity: " + currentActivityStatefinal.name() + ". "+ localizationMethod.getMiscInfo());
+                        actMiscText.setText("Activity: " + currentActivityStatefinal.name() + ". " + localizationMethod.getMiscInfo());
                     }
                 });
 
 
                 nextTick += SKIP_TICKS_UPDATE;
                 sleepTime = nextTick - System.currentTimeMillis();
-                if(sleepTime > 0) {
+                if (sleepTime > 0) {
                     try {
                         Thread.sleep(sleepTime);
                     } catch (InterruptedException e) {
@@ -472,7 +478,12 @@ public class LocateMeActivity extends AppCompatActivity {
         float distance = steps * 0.76f;
         totalSteps += steps;
 
-        ((ContinuousLocalization) localizationMethod).updateParticles(azimuthList.peek(), distance, particles);
+        if (activityRecognizer instanceof FourierTransformActivityRecognizer) {
+            List<Float> azimuths = new ArrayList<Float>(azimuthList);
+            ((ContinuousLocalization) localizationMethod).updateParticles(azimuths.get(azimuths.size()*3/4), distance, particles); //Fourier transform is very fast, should use most recent rotation
+        }
+        else
+            ((ContinuousLocalization) localizationMethod).updateParticles(azimuthList.peek(), distance, particles);
 
 
         ((ContinuousLocalization) localizationMethod).collideAndResample(particles, walls);
@@ -493,8 +504,14 @@ public class LocateMeActivity extends AppCompatActivity {
         drawable.getPaint().setColor(Color.RED);
 
         Iterator<Particle> it = particles.iterator();
-        while (it.hasNext()){
+        while (it.hasNext()) {
             Particle p = it.next();
+            if(p.getTimeAlive() < 5)
+                drawable.getPaint().setColor(Color.GREEN);
+            else if(p.getTimeAlive() < 10)
+                drawable.getPaint().setColor(Color.YELLOW);
+            else
+                drawable.getPaint().setColor(Color.RED);
             drawable.setBounds(xOffSet - Math.round((p.getY()) * xcale) - particleRadius,
                     yOffSet + Math.round((p.getX()) * xcale) - particleRadius,
                     xOffSet - Math.round((p.getY()) * xcale) + particleRadius,
@@ -517,7 +534,7 @@ public class LocateMeActivity extends AppCompatActivity {
                 // get the azimuth value (orientation[0]) in degree
                 mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 180) % 360;
 
-                if(azimuthList.size() >= NUM_ACC_READINGS) {
+                if (azimuthList.size() >= NUM_ACC_READINGS) {
                     azimuthList.poll();
                 }
                 azimuthList.add(mAzimuth);
@@ -700,7 +717,7 @@ public class LocateMeActivity extends AppCompatActivity {
         return localizationMethod;
     }
 
-    public LocateMeActivity getLocateMeActivity(){
+    public LocateMeActivity getLocateMeActivity() {
         return this;
     }
 
@@ -723,7 +740,7 @@ public class LocateMeActivity extends AppCompatActivity {
         List<Float> accelerometerDataMagnitudeFFT = Utils.fourierTransform(new ArrayList<>(accelerometerDataMagnitude));
         List<Float> except0 = accelerometerDataMagnitudeFFT.subList(1, accelerometerDataMagnitudeFFT.size());
         int highestHz = Utils.argMax(except0);
-        System.out.println(highestHz+1 + ": " + except0.get(highestHz));
+        System.out.println(highestHz + 1 + ": " + except0.get(highestHz));
 
         while (accDataIt.hasNext()) {
             int mag = (int) (5 * accDataIt.next());
@@ -749,10 +766,10 @@ public class LocateMeActivity extends AppCompatActivity {
 
             //Draw 0 line
             drawable.getPaint().setColor(Color.BLACK);
-            drawable.setBounds((Math.round(xOff * x) - particleRadius+1),
-                    (1000+5) - particleRadius+1,
-                    Math.round(xOff * x) + particleRadius-1,
-                    (1000+5) + particleRadius-1);
+            drawable.setBounds((Math.round(xOff * x) - particleRadius + 1),
+                    (1000 + 5) - particleRadius + 1,
+                    Math.round(xOff * x) + particleRadius - 1,
+                    (1000 + 5) + particleRadius - 1);
             drawable.draw(canvas);
         }
     }
