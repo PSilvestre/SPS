@@ -506,12 +506,7 @@ public class LocateMeActivity extends AppCompatActivity {
         Iterator<Particle> it = particles.iterator();
         while (it.hasNext()) {
             Particle p = it.next();
-            if(p.getTimeAlive() < 5)
-                drawable.getPaint().setColor(Color.GREEN);
-            else if(p.getTimeAlive() < 10)
-                drawable.getPaint().setColor(Color.YELLOW);
-            else
-                drawable.getPaint().setColor(Color.RED);
+            drawable.setAlpha((int) (p.getWeight()*2000*255));
             drawable.setBounds(xOffSet - Math.round((p.getY()) * xcale) - particleRadius,
                     yOffSet + Math.round((p.getX()) * xcale) - particleRadius,
                     xOffSet - Math.round((p.getY()) * xcale) + particleRadius,

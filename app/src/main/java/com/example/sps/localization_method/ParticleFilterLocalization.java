@@ -21,7 +21,7 @@ import static com.example.sps.LocateMeActivity.NUM_CELLS;
 public class ParticleFilterLocalization implements ContinuousLocalization {
 
     public static final int NUM_PARTICLES = 3000;
-    private NormalDistribution noiseDegrees = new NormalDistribution(0, 22.5); //before 22.5
+    private NormalDistribution noiseDegrees = new NormalDistribution(0, 90/5); //before 22.5
     private NormalDistribution noiseDistance;
 
     @Override
@@ -91,7 +91,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         if (distance == 0)
             return;
 
-        noiseDistance = new NormalDistribution(0, distance/4); //TODO: find good STD_DEV
+        noiseDistance = new NormalDistribution(0, distance/10); //TODO: find good STD_DEV
         float norm;
         float angle;
         float toRadians = (float) (1.0f / 180 * Math.PI);
