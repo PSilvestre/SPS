@@ -18,7 +18,7 @@ public class FourierTransformActivityRecognizer implements ActivityRecognizer {
     private float dominantFrequencyHz;
     private float dominantFrequencyMagnitude;
 
-
+    private int samplesSinceTransition = 0;
     private SubjectActivity lastState = SubjectActivity.STANDING;
 
 
@@ -31,6 +31,7 @@ public class FourierTransformActivityRecognizer implements ActivityRecognizer {
         float rawstdDev = Utils.stdDeviation(mostRecent, rawmean);
 
         if (rawstdDev < 0.5) {
+            if(lastState == SubjectActivity.WALKING) samplesSinceTransition = accReadingsSinceLastUpdate.get();
             lastState = SubjectActivity.STANDING; return SubjectActivity.STANDING;};
 
         List<Float> accelerometerDataMagnitudeFFT = Utils.fourierTransform(new ArrayList<>(sensorData));
@@ -73,10 +74,16 @@ public class FourierTransformActivityRecognizer implements ActivityRecognizer {
             return numSteps;
 
         }
+        int numSteps = 0;
+        if(samplesSinceTransition != 0) {
+            numSteps = Math.round(samplesSinceTransition / ((ACCELEROMETER_SAMPLES_PER_SECOND/2)/  dominantFrequencyHz));
+            samplesSinceTransition = 0;
+
+        }
 
         accReadingsSinceLastUpdate.set(0);
 
-        return 0;
+        return numSteps;
     }
 
 
