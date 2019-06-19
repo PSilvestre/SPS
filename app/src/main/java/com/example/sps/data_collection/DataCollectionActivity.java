@@ -82,7 +82,7 @@ public class DataCollectionActivity extends AppCompatActivity {
 
     private SubjectActivity selectedActivity;
 
-    private int updateGaussians;
+    private boolean updateGaussians;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,7 +91,7 @@ public class DataCollectionActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        updateGaussians = 0;
+        updateGaussians = false;
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
@@ -163,7 +163,7 @@ public class DataCollectionActivity extends AppCompatActivity {
                 scanInfo = new ScanInfo(wifiManager.startScan(), Integer.parseInt(txtScanningCell.getText().toString()), Direction.EAST);
 
                 updateTxtScanStatus(scanInfo.isScanSuccessful());
-                updateGaussians = 1;
+                updateGaussians = true;
 
                 //update info texts
                 updateTxtInfoScan();
@@ -191,7 +191,7 @@ public class DataCollectionActivity extends AppCompatActivity {
                         }
                     }
                 }).start();
-                updateGaussians = 1;
+                updateGaussians = true;
 
                 //update info texts
                 updateTxtInfoScan();
@@ -233,6 +233,7 @@ public class DataCollectionActivity extends AppCompatActivity {
                 dbConnection.deleteLastScan();
                 updateTxtInfoScan();
                 updateTxtInfoScanSpec();
+                updateGaussians = true;
             }
         });
 
@@ -337,6 +338,7 @@ public class DataCollectionActivity extends AppCompatActivity {
         });
     }
 
+    //If any scan was made or removed
     private void updateGaussians(){
 
         dbConnection.clearGaussianTable();
@@ -356,7 +358,7 @@ public class DataCollectionActivity extends AppCompatActivity {
     public void onPause(){
         super.onPause();
         this.unregisterReceiver(receiver);
-        if (updateGaussians == 1)
+        if (updateGaussians)
             updateGaussians();
     }
 
@@ -364,7 +366,7 @@ public class DataCollectionActivity extends AppCompatActivity {
     public void onResume(){
         super.onResume();
         this.registerReceiver(receiver, filter);
-        updateGaussians = 0;
+        updateGaussians = false;
         updateTxtInfoScan();
         updateTxtInfoAct();
     }

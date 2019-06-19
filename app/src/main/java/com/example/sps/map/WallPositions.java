@@ -1,7 +1,5 @@
 package com.example.sps.map;
 
-import com.example.sps.localization_method.Particle;
-
 import java.util.LinkedList;
 import java.util.List;
 
@@ -36,10 +34,9 @@ public class WallPositions {
         drawable.addAll(cells);
         drawable.add(new Cell(17, new float[]{8.1f,4.0f,11.3f,2.5f}, new boolean[]{true, false, true, false}));
 
-
-
     }
 
+    //get total area of the map.
     public float getTotalArea() {
         float total = 0;
         for(Cell c : this.cells)
@@ -48,30 +45,13 @@ public class WallPositions {
         return total;
     }
 
-    public int getCellParticleIsInside(Particle p) {
-        for(Cell c: cells) {
-            if(c.isParticleInside(p))
-                return c.getCellNumber();
-        }
-        return -1;
-    }
-
-
 
     public List<Cell> getCells() {
         return cells;
     }
 
-    public void setCells(List<Cell> cells) {
-        this.cells = cells;
-    }
-
     public List<Cell> getDrawable() {
         return drawable;
-    }
-
-    public void setDrawable(List<Cell> drawable) {
-        this.drawable = drawable;
     }
 
     public float getMaxWidth() {

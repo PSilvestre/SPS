@@ -238,7 +238,7 @@ public class LocateMeActivity extends AppCompatActivity {
         locateMeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                // while computing the location
                 cellText.setText("Loading...");
                 actMiscText.setText("");
                 if (scanData != null)
@@ -247,6 +247,7 @@ public class LocateMeActivity extends AppCompatActivity {
                 if (!(localizationMethod instanceof ContinuousLocalization))
                     new Thread(new singleLocalizationRunnable()).start();
                 else {
+                    //If there is a localization method running already, stop it
                     if(activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable) {
                         ((continuousLocalizationRunnable) activeLocalizationRunnable).setRunning(false);
                         activeCountParticlesThread.setRunning(false);
@@ -256,6 +257,8 @@ public class LocateMeActivity extends AppCompatActivity {
                             e.printStackTrace();
                         }
                     }
+
+                    // And start a new one.
                     activeLocalizationRunnable = new continuousLocalizationRunnable();
                     new Thread(activeLocalizationRunnable).start();
                 }
@@ -263,6 +266,7 @@ public class LocateMeActivity extends AppCompatActivity {
             }
         });
 
+        //Go to collect Data Activity if that button is pressed
         collectDataButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -282,13 +286,13 @@ public class LocateMeActivity extends AppCompatActivity {
             @Override
             public void run() {
                 long nextTick = System.currentTimeMillis();
-                long sleepTime = 0;
+                long sleepTime;
                 while (true) {
 
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            if (update) {
+                            if (update) { //"update" is used to control refresh time of the drawings
 
                                 if (plotDetailedSensor) {
                                     xOffSet = XOFFSET2; //move map to the side
@@ -301,9 +305,12 @@ public class LocateMeActivity extends AppCompatActivity {
 
                                 if (localizationMethod instanceof ContinuousLocalization){
                                     drawArrow();
+                                    //Display steps walked so far:
                                     Paint p = new Paint();
                                     p.setTextSize(50);
                                     canvas.drawText("Steps: " + totalSteps , 20, 40, p);
+
+
                                     if(particles != null) {
                                         drawParticles();
                                     }
@@ -316,7 +323,7 @@ public class LocateMeActivity extends AppCompatActivity {
                         }
                     });
                     nextTick += SKIP_TICKS_DRAW;
-                    sleepTime = nextTick -System.currentTimeMillis();
+                    sleepTime = nextTick - System.currentTimeMillis();
                     if(sleepTime > 0) {
                         try {
                             Thread.sleep(sleepTime);
@@ -330,6 +337,7 @@ public class LocateMeActivity extends AppCompatActivity {
         }).start();
     }
 
+    //For non continuous localizations, the runnable created at Locate Me button press
     public class singleLocalizationRunnable implements Runnable {
         public void run() {
             update = true;
@@ -337,9 +345,11 @@ public class LocateMeActivity extends AppCompatActivity {
             //Start wifi scan
             wifiManager.startScan();
 
+            //Because the accelerometer will be off in between scans, is necessary to empty it every time from the previous samples
             accelerometerDataMagnitude.removeAll(accelerometerDataMagnitude);
             accelerometerDataRaw.removeAll(accelerometerDataRaw);
 
+            //And then refill it again
             sensorManager.registerListener(accelerometerListener, accelerometer, 1000000/ACCELEROMETER_SAMPLES_PER_SECOND);
 
             while (scanData == null || scanData.size() == 0 || accelerometerDataMagnitude.size() < NUM_ACC_READINGS) { //spin while data not ready
@@ -349,15 +359,17 @@ public class LocateMeActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
             }
-            //when finished, compute location and activity and post to user. unregister accelorometer listener
+
             sensorManager.unregisterListener(accelerometerListener);
 
             final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerDataMagnitude,accelerometerDataRaw, databaseService);
 ;
             cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
 
-            final int cell = getIndexOfLargest(cellProbabilities) + 1;
+            final int cell = Utils.getIndexOfLargestOnArray(cellProbabilities) + 1;
 
+
+            //There is an option to write to a final the measurement result and the current cell we are actually it, for statistics purposes
             if (!currCellText.getText().toString().equals("CurrentCell (for stats)")) {
                 int txtCell = Integer.parseInt(currCellText.getText().toString());
 
@@ -385,7 +397,7 @@ public class LocateMeActivity extends AppCompatActivity {
         }
     }
 
-
+    //For continuous localizations, the runnable created at Locate Me button press
     public class continuousLocalizationRunnable implements Runnable {
 
         private boolean running = true;
@@ -403,6 +415,7 @@ public class LocateMeActivity extends AppCompatActivity {
             // Spread particles
             particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
 
+            //Begin a thread to Continuously count the particles weights and update the text accordingly
             activeCountParticlesThread = new CountParticleWeightsThread(particles, walls, getLocateMeActivity());
             activeCountParticlesThread.start();
 
@@ -415,6 +428,7 @@ public class LocateMeActivity extends AppCompatActivity {
             while (localizationMethod instanceof ContinuousLocalization && running) {
                 steps = 0;
 
+                //Amount of samples that come into the buffer between localizations
                 if(currentActivityState == SubjectActivity.LOADING)
                     accReadingsSinceLastUpdate.set(0);
 
@@ -467,7 +481,7 @@ public class LocateMeActivity extends AppCompatActivity {
         return;
     }
 
-
+    //Draw particles in the positions they are in
     private void drawParticles() {
 
         int width = this.canvas.getWidth();
@@ -500,12 +514,14 @@ public class LocateMeActivity extends AppCompatActivity {
             if (sensorEvent.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
                 // calculate th rotation matrix
                 SensorManager.getRotationMatrixFromVector(rMat, sensorEvent.values);
-                // get the azimuth value (orientation[0]) in degree
+                // get the azimuth value (orientation[0]) in degrees
                 mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 180) % 360;
 
                 if(azimuthList.size() >= NUM_ACC_READINGS) {
                     azimuthList.poll();
                 }
+
+                //save the orientation angles to choose the correct one when steps are taken
                 azimuthList.add(mAzimuth);
 
 
@@ -518,6 +534,7 @@ public class LocateMeActivity extends AppCompatActivity {
         }
     }
 
+    //Draw an "arrow" that moves according to the phones orientation relative to the map
     private void drawArrow() {
 
         double stopX = 200 * Math.cos((mAzimuth + 90) / 180 * Math.PI); // + 90 to compensate for rotation
@@ -529,24 +546,12 @@ public class LocateMeActivity extends AppCompatActivity {
         canvas.drawLine(x_offset, y_offset, x_offset + (int) Math.round(stopX), y_offset + (int) Math.round(stopY), p);
     }
 
+    //Highlight location on Bayes Localization
     private void highlightLocation(int current_cell) {
 
         float xcale = canvas.getWidth() / walls.getMaxWidth();
 
         ShapeDrawable rectangle = new ShapeDrawable(new RectShape());
-
-        /*
-        //Delete highlight in the last cell
-        Cell c = walls.getCells().get(last_cell - 1);
-
-        rectangle.getPaint().setColor(Color.BLACK);
-        rectangle.getPaint().setStyle(Paint.Style.STROKE);
-        rectangle.getPaint().setStrokeWidth(10);
-
-        rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLeftWall() * xcale),
-                xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
-        rectangle.draw(canvas);
-        */
 
         //Highlight current cell
         Cell c = walls.getCells().get(current_cell - 1);
@@ -557,19 +562,6 @@ public class LocateMeActivity extends AppCompatActivity {
         rectangle.setBounds(xOffSet - Math.round(c.getBottomWall() * xcale), yOffSet + Math.round(c.getLeftWall() * xcale),
                 xOffSet - Math.round(c.getTopWall() * xcale), yOffSet + Math.round(c.getRightWall() * xcale));
         rectangle.draw(canvas);
-
-
-    }
-
-    public int getIndexOfLargest(float[] array) {
-        if (array == null || array.length == 0)
-            return -1;
-
-        int largest = 0;
-        for (int i = 1; i < array.length; i++) {
-            if (array[i] > array[largest]) largest = i;
-        }
-        return largest;
     }
 
 
@@ -606,6 +598,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
     }
 
+    //Sets all previous cell probabilities to uniform and resets the steps taken
     protected void setInitialBelief() {
         int numCells = databaseService.getNumberOfCells();
         cellProbabilities = new float[numCells];
@@ -630,7 +623,7 @@ public class LocateMeActivity extends AppCompatActivity {
         Point size = new Point();
         display.getSize(size);
 
-        ImageView canvasView = (ImageView) findViewById(R.id.canvas);
+        ImageView canvasView = findViewById(R.id.canvas);
 
         Bitmap blankBitmap = Bitmap.createBitmap(size.x, size.y, Bitmap.Config.ARGB_8888);
 
@@ -690,6 +683,7 @@ public class LocateMeActivity extends AppCompatActivity {
         return this;
     }
 
+    //CheckBox click handler for Detailed Sensor data
     public void onCheckboxClicked(View view) {
         boolean checked = ((CheckBox) view).isChecked();
 
@@ -697,6 +691,7 @@ public class LocateMeActivity extends AppCompatActivity {
             plotDetailedSensor = checked;
     }
 
+    //A function that draws the graphs of the Sensor Data and its FFT
     public void drawDetailedSensorData() {
         ShapeDrawable drawable = new ShapeDrawable(new OvalShape());
 

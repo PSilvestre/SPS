@@ -24,18 +24,23 @@ public class ParallelBayesianLocalizationMethod implements LocalizationMethod {
         double[] currProb = new double[numCells];
         boolean useBSSID;
 
-        numBSSIDSUsed = 0;
+        numBSSIDSUsed = 0; //count for misc info
+
+        //For each scanResult in the current Wi-Fi scan
         for (int j = 0; j < scan.size(); j++) {
             useBSSID = false;
             float normalizer = 0;
             double[] probForBssid = new double[numCells];
 
+
+            ScanResult scanResult = scan.get(j);
             for (int i = 1; i <= numCells; i++) {
-                ScanResult scanResult = scan.get(j);
+                //See the probability of getting that scan RSSI if we are in a certain cell
                 NormalDistribution normal = databaseService.getGaussian(i, scanResult.BSSID);
                 if (normal != null) {
                     double rssi = ((double) scanResult.level);
                     double rssiProb = (normal.cumulativeProbability(rssi + 0.5) - normal.cumulativeProbability(rssi - 0.5));
+                    // P(RSSI | cell i) * Prior(cell_i)
                     double rssiProbTimesPrior = rssiProb * priorProbabilities[i - 1];
 
                     probForBssid[i - 1] = rssiProbTimesPrior;
@@ -48,20 +53,22 @@ public class ParallelBayesianLocalizationMethod implements LocalizationMethod {
                 }
             }
 
-
+            // Conclude the normalization P(RSSI k | cell i) * Prior(cell_i) / P(RSSI k) = P(cell i | RSSI k)
             if (normalizer > 0) {
                 for (int i = 0; i < numCells; i++) {
                     probForBssid[i] /= normalizer;
                 }
             }
 
-            float sum = 0f;
+            //Update the current beliefs
             if (useBSSID && numBSSIDSUsed == 0) {
+                //If it is the first measurement
                 for (int i = 0; i < numCells; i++) {
                     currProb[i] = probForBssid[i];
                 }
                 numBSSIDSUsed++;
             } else if (useBSSID) {
+                //If it is the second or posterior, update in such way that it takes into account where we've been before.
                 for (int i = 0; i < numCells; i++) {
 
                     currProb[i] = (currProb[i] * numBSSIDSUsed + probForBssid[i]) / (numBSSIDSUsed + 1);

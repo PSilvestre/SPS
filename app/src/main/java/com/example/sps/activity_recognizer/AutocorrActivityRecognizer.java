@@ -46,7 +46,6 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
             maxDelay = Math.min(optDelay + 10, MAX_DELAY);
         }
         List<Float> correlationsForEachDelay = Utils.correlation(sensorDataMagnitudeList, sensorDataMagnitudeList, minDelay, maxDelay);
-        int delayDetected = minDelay;
 
 
         int largestCorrelationIndex = Utils.argMax(correlationsForEachDelay);

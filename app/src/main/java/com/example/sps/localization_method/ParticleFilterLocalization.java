@@ -34,7 +34,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         return "NUM_PARTICLES = " + NUM_PARTICLES;
     }
 
-
+    //Choose a particle amongst various particles with various weights in the same cell.
     private Particle sampleParticle(EnumeratedDistribution distribution, Random r, float weight) {
 
         WallPositions walls = new WallPositions();
@@ -86,6 +86,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         return particles;
     }
 
+    //Update particle positions based on the distance and direction they should move + noise
     @Override
     public void updateParticles(float azi, float distance, CopyOnWriteArrayList<Particle> particles) {
         if (distance == 0)

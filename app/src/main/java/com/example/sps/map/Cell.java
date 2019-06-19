@@ -5,6 +5,7 @@ import com.example.sps.localization_method.ParticleFilterLocalization;
 
 public class Cell {
 
+    //Enum of the lazy
     public static final int TOP = 0;
     public static final int RIGHT = 1;
     public static final int BOTTOM = 2;
@@ -67,6 +68,18 @@ public class Cell {
         return walls[LEFT];
     }
 
+
+
+    /* Collision method work principle:
+       1- Check if a vertical wall if between the x position of the initial and last positions.
+       2- If yes: check if y positions are in the wall bottom and top positions;
+       3- If yes: there is a collision.
+
+       Does the analogous for horizontal walls.
+       Fails in certain scenarios but considering the maximum moving speed, the scenarios where
+       it fails it is likely that we actually don't want to compute any collision and simply account
+       that as normal movement because there can be a problem with the direction vector.
+    * */
     public boolean collide(Particle p) {
 
         if(!traversable[LEFT]) {
@@ -105,6 +118,7 @@ public class Cell {
         return false;
     }
 
+    //Returns if a particle is inside the cell
     public boolean isParticleInside(Particle p){
         return (p.getX() > walls[LEFT] && p.getX() < walls[RIGHT] && p.getY() > walls[TOP] && p.getY() < walls[BOTTOM]);
     }

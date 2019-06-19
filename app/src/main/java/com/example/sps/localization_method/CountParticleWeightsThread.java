@@ -3,6 +3,7 @@ package com.example.sps.localization_method;
 import android.app.Activity;
 
 import com.example.sps.LocateMeActivity;
+import com.example.sps.Utils;
 import com.example.sps.map.WallPositions;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ public class CountParticleWeightsThread extends Thread {
     private WallPositions walls;
     private LocateMeActivity src;
     private boolean running;
+
     public CountParticleWeightsThread(List<Particle> particles, WallPositions walls, LocateMeActivity src) {
         this.particles = particles;
         this.walls = walls;
@@ -41,22 +43,19 @@ public class CountParticleWeightsThread extends Thread {
 
             int index;
 
+            //Equate the weight of each particle
             for (Particle p : particles) {
                 index = p.getCell();
+                //to skip fake cells:
                 if (index > 15) continue;
+
                 weightSumPerCell.set(index, weightSumPerCell.get(index) + p.getWeight());
             }
 
+            //Get cell with highest weight
+            final int decision = Utils.argMax(weightSumPerCell);
 
-            int indexOfHighest = 0;
-            float valueOfMax = weightSumPerCell.get(0);
-            for (int i = 1; i < weightSumPerCell.size(); i++) {
-                if (valueOfMax < weightSumPerCell.get(i)) {
-                    indexOfHighest = i;
-                    valueOfMax = weightSumPerCell.get(i);
-                }
-            }
-            final int decision = indexOfHighest;
+            //Update text on UI
             src.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {

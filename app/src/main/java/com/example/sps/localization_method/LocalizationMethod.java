@@ -1,8 +1,6 @@
 package com.example.sps.localization_method;
 
 import android.net.wifi.ScanResult;
-
-import com.example.sps.data_loader.WifiScan;
 import com.example.sps.database.DatabaseService;
 
 import java.util.List;

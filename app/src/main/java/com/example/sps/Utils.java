@@ -28,11 +28,11 @@ public class Utils {
         for(WifiScan scan : scansOfCell) {
             //get the results of each scan
             for(WifiReading reading : scan.getReadings()) {
-
+                //if that bssid hasn't been found  yet, add it
                 if(!count.containsKey(reading.getBSSID())) {
                     count.put(reading.getBSSID(), new int[NUM_BUCKETS_TO_USE]);
                 }
-
+                //increment the count for that BSSID
                 count.get(reading.getBSSID())[Math.abs(reading.getRSS())]++;
 
             }
@@ -54,6 +54,7 @@ public class Utils {
         return toReturn;
     }
 
+    //Calculates the Standard Deviations of the RSSIs for each BSSI every time it appeared on a scan of that cell
     public static Map<String, Float> calculateStdDevs(List<WifiScan> scansOfCell, Map<String, Float> means) {
         Map<String, Float> toReturn = new HashMap<>();
 
@@ -77,6 +78,11 @@ public class Utils {
             int[] hist = count.get(bssid);
             float stddev = 0;
             float mean = means.get(bssid);
+
+            //Standard Deviation computation
+            // TODO: we should use the other function... right?
+            // I think we don't even need to send the -i in there IF the mean is calculated with a -,
+            //meaning: we can do stdDev(hist, - mean) instead of inverting all of them
             int c = 0;
             for(int i = 0; i < NUM_BUCKETS_TO_USE; i++){
                 for(int j = 0; j < hist[i]; j++) {
@@ -93,7 +99,7 @@ public class Utils {
         return toReturn;
     }
 
-
+    //Computes the mean of a List of Floats
     public static float mean(List<Float> list) {
 
         float mean = 0;
@@ -105,6 +111,7 @@ public class Utils {
         return mean;
     }
 
+    //Computes the Standard Deviation of a List of Floats
     public static float stdDeviation(List<Float> list, Float mean) {
 
         float stdDev = 0;
@@ -117,7 +124,7 @@ public class Utils {
         return stdDev;
     }
 
-
+    //Computes the correlation for 2 lists
     public static List<Float> correlation(List<Float> data1, List<Float> data2, int minDelay, int maxDelay) {
 
 
@@ -150,7 +157,11 @@ public class Utils {
         return correlationForEachDelay;
     }
 
+    //Returns the index of the largest element in the List
     public static int argMax(List<Float> elements) {
+        if (elements == null || elements.size() == 0)
+            return -1;
+
         float maxVal = Float.MIN_VALUE;
         int maxIndex = 0;
 
@@ -162,6 +173,21 @@ public class Utils {
         }
         return  maxIndex;
     }
+
+    //TODO: there is an argMax function... (Bottom line: how to convert float[] to a list in the same line?
+    // argMax(new Arraylist<>(array)) doesn't.)
+    public static int getIndexOfLargestOnArray(float[] array) {
+        if (array == null || array.length == 0)
+            return -1;
+
+        int largest = 0;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] > array[largest]) largest = i;
+        }
+        return largest;
+    }
+
+
 
     public static List<Float> fourierTransform(List<Float> sig) {
 
