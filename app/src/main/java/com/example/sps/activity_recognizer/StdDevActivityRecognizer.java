@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class StdDevActivityRecognizer implements ActivityRecognizer {
 
     @Override
-    public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection) {
+    public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection, AtomicInteger accReadingsSinceLastUpdate) {
         List<Float> sensorDataMagnitudeList = new ArrayList<>(sensorData);
         float mean = Utils.mean(sensorDataMagnitudeList);
         float stdDev = Utils.stdDeviation(sensorDataMagnitudeList, mean);

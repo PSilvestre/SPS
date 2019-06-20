@@ -30,7 +30,7 @@ class CrossCorrActivityRecognizer implements ActivityRecognizer {
     SubjectActivity lastState = SubjectActivity.STANDING;
 
     @Override
-    public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection) {
+    public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection, AtomicInteger accReadingsSinceLastUpdate) {
 
 
         int minDelay = 10;

@@ -8,6 +8,7 @@ import com.example.sps.map.WallPositions;
 
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.distribution.UniformRealDistribution;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
@@ -21,8 +22,8 @@ import static com.example.sps.LocateMeActivity.NUM_CELLS;
 public class ParticleFilterLocalization implements ContinuousLocalization {
 
     public static final int NUM_PARTICLES = 3000;
-    private NormalDistribution noiseDegrees = new NormalDistribution(0, 22.5); //before 22.5
-    private NormalDistribution noiseDistance;
+    private NormalDistribution noiseDegrees = new NormalDistribution(0, 90/4); //before 22.5
+    private UniformRealDistribution noiseDistance;
 
     @Override
     public float[] computeLocation(List<ScanResult> scan, float[] priorProbabilities, DatabaseService databaseService) {
@@ -92,11 +93,14 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         if (distance == 0)
             return;
 
-        noiseDistance = new NormalDistribution(0, distance/4);
+
+        noiseDistance = new UniformRealDistribution(-0.2, 0.2); //TODO: find good STD_DEV
+
         float norm;
         float angle;
         float toRadians = (float) (1.0f / 180 * Math.PI);
         for (Particle p : particles) {
+            p.incTimeAlive();
             norm = (float) (distance + noiseDistance.sample());
             angle = (float) (azi + noiseDegrees.sample());
             p.setX((float) (p.getX() + norm * Math.cos(angle * toRadians)));
@@ -125,7 +129,6 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
                 if (walls.getDrawable().get(i).isParticleInside(p)) {
                     p.setCell(i);
                     cellFound = true;
-                    p.incTimeAlive();
                     totalTimeAlive += p.getTimeAlive();
                     break;
                 }
@@ -161,7 +164,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
                 areaDistributionWeights.add(new Pair<Integer, Double>(i, (double) (wallPositions.getCells().get(i).getAreaOfCell() / wallPositions.getTotalArea())));
             }
             EnumeratedDistribution<Integer> areaDistribution = new EnumeratedDistribution<>(areaDistributionWeights);
-            int startRandomSpreadIndex = (int) Math.floor(deadParticles.size() * 0.97);
+            int startRandomSpreadIndex = (int) Math.floor(deadParticles.size() * 1);
 
 
             for (int i = 0; i < deadParticles.size(); i++) {
