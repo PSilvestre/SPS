@@ -45,14 +45,15 @@ import com.example.sps.localization_method.CountParticleWeightsThread;
 import com.example.sps.localization_method.ContinuousLocalization;
 import com.example.sps.localization_method.LocalizationMethod;
 import com.example.sps.localization_method.LocalizationAlgorithm;
+import com.example.sps.localization_method.ParallelBayesianLocalizationMethod;
 import com.example.sps.localization_method.Particle;
 import com.example.sps.map.Cell;
 import com.example.sps.map.WallPositions;
 
 import java.io.FileWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -101,7 +102,8 @@ public class LocateMeActivity extends AppCompatActivity {
     private Button locateMeButton;
     private Button collectDataButton;
 
-    private CheckBox checkBox;
+    private CheckBox fourierDetailsCheckBox;
+    private CheckBox stickyAnglesCheckBox;
 
     private TextView cellText;
     private TextView actMiscText;
@@ -139,6 +141,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
     private LinkedBlockingQueue<Float> azimuthList;
 
+    private boolean stickyAngles;
 
     private int totalSteps = 0;
 
@@ -152,7 +155,7 @@ public class LocateMeActivity extends AppCompatActivity {
 
     private WallPositions walls = new WallPositions();
 
-    private Runnable activeLocalizationRunnable;
+    private Thread activeLocalizationRunnable;
     private CountParticleWeightsThread activeCountParticlesThread;
 
 
@@ -166,7 +169,9 @@ public class LocateMeActivity extends AppCompatActivity {
         initialBeliefButton = findViewById(R.id.btn_initial_belief);
         locateMeButton = findViewById(R.id.btn_locate_me);
         collectDataButton = findViewById(R.id.btn_collect_data);
-        checkBox = findViewById(R.id.checkbox_detailed_sensor);
+        fourierDetailsCheckBox = findViewById(R.id.checkbox_detailed_sensor);
+         stickyAnglesCheckBox = findViewById(R.id.checkbox_sticky_angles);
+         stickyAngles = false;
 
 
         cellText = findViewById(R.id.cell_guess);
@@ -190,7 +195,7 @@ public class LocateMeActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 localizationMethod = ((LocalizationAlgorithm) adapterView.getItemAtPosition(i)).getMethod();
                 plotDetailedSensor = false;
-                checkBox.setChecked(false);
+                fourierDetailsCheckBox.setChecked(false);
             }
 
             @Override
@@ -266,13 +271,16 @@ public class LocateMeActivity extends AppCompatActivity {
                         ((continuousLocalizationRunnable) activeLocalizationRunnable).setRunning(false);
                         activeCountParticlesThread.setRunning(false);
                         try {
-                            Thread.sleep(10);
+                            activeCountParticlesThread.join();
+                            activeLocalizationRunnable.join();
+
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
+
                     }
                     activeLocalizationRunnable = new continuousLocalizationRunnable();
-                    new Thread(activeLocalizationRunnable).start();
+                    activeLocalizationRunnable.start();
                 }
 
             }
@@ -345,31 +353,41 @@ public class LocateMeActivity extends AppCompatActivity {
         }).start();
     }
 
-    public class singleLocalizationRunnable implements Runnable {
+    public void onStickyCheckboxClicked(View view) {
+        stickyAngles = !stickyAngles;
+    }
+
+    public class singleLocalizationRunnable extends Thread {
         public void run() {
             update = true;
-
-            //Start wifi scan
-            wifiManager.startScan();
 
             accelerometerDataMagnitude.removeAll(accelerometerDataMagnitude);
             accelerometerDataRaw.removeAll(accelerometerDataRaw);
 
             sensorManager.registerListener(accelerometerListener, accelerometer, 1000000 / ACCELEROMETER_SAMPLES_PER_SECOND);
 
-            while (scanData == null || scanData.size() == 0 || accelerometerDataMagnitude.size() < NUM_ACC_READINGS) { //spin while data not ready
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            int numTimesToRepeat = 1;
+            if(localizationMethod instanceof ParallelBayesianLocalizationMethod)
+                numTimesToRepeat = 3;
+            for(int i = 0; i<numTimesToRepeat; i++) {
+                //Start wifi scan
+                wifiManager.startScan();
+
+                while (scanData == null || scanData.size() == 0 || accelerometerDataMagnitude.size() < NUM_ACC_READINGS) { //spin while data not ready
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
+                cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
+                scanData = new LinkedList<>();
             }
             //when finished, compute location and activity and post to user. unregister accelorometer listener
             sensorManager.unregisterListener(accelerometerListener);
 
             final SubjectActivity activity = activityRecognizer.recognizeActivity(accelerometerDataMagnitude, accelerometerDataRaw, databaseService, accReadingsSinceLastUpdate);
-            ;
-            cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
+
 
             final int cell = getIndexOfLargest(cellProbabilities) + 1;
 
@@ -401,7 +419,7 @@ public class LocateMeActivity extends AppCompatActivity {
     }
 
 
-    public class continuousLocalizationRunnable implements Runnable {
+    public class continuousLocalizationRunnable extends Thread {
 
         private boolean running = true;
 
@@ -415,10 +433,7 @@ public class LocateMeActivity extends AppCompatActivity {
             accReadingsSinceLastUpdate.set(0);
             update = false;
 
-            if(activityRecognizer instanceof FourierTransformActivityRecognizer)
-                sensorManager.registerListener(accelerometerListener, accelerometer, (int) (1000000.0f / (ACCELEROMETER_SAMPLES_PER_SECOND/2)));
-            else
-                sensorManager.registerListener(accelerometerListener, accelerometer, (int) (1000000.0f / (ACCELEROMETER_SAMPLES_PER_SECOND)));
+            sensorManager.registerListener(accelerometerListener, accelerometer, (int) (1000000.0f / (ACCELEROMETER_SAMPLES_PER_SECOND)));
 
             // Spread particles
             particles = ((ContinuousLocalization) localizationMethod).spreadParticles(cellProbabilities);
@@ -469,18 +484,19 @@ public class LocateMeActivity extends AppCompatActivity {
             }
 
             sensorManager.unregisterListener(accelerometerListener);
+            System.out.println("Unregistered");
 
         }
     }
 
     private void updateParticles(int steps) {
 
-        float distance = steps * 0.76f;
+        float distance = steps * 0.70f;
         totalSteps += steps;
 
         if (activityRecognizer instanceof FourierTransformActivityRecognizer) {
             List<Float> azimuths = new ArrayList<Float>(azimuthList);
-            ((ContinuousLocalization) localizationMethod).updateParticles(azimuths.get(azimuths.size()*3/4), distance, particles); //Fourier transform is very fast, should use most recent rotation
+            ((ContinuousLocalization) localizationMethod).updateParticles(azimuths.get((int) (azimuths.size()*5.0f/6.0f)), distance, particles); //Fourier transform is very fast, should use recent rotation
         }
         else
             ((ContinuousLocalization) localizationMethod).updateParticles(azimuthList.peek(), distance, particles);
@@ -506,7 +522,7 @@ public class LocateMeActivity extends AppCompatActivity {
         Iterator<Particle> it = particles.iterator();
         while (it.hasNext()) {
             Particle p = it.next();
-            drawable.setAlpha((int) (p.getWeight()*2000*255));
+            drawable.setAlpha((int) (p.getWeight()*1500*255));
             drawable.setBounds(xOffSet - Math.round((p.getY()) * xcale) - particleRadius,
                     yOffSet + Math.round((p.getX()) * xcale) - particleRadius,
                     xOffSet - Math.round((p.getY()) * xcale) + particleRadius,
@@ -527,7 +543,10 @@ public class LocateMeActivity extends AppCompatActivity {
                 // calculate th rotation matrix
                 SensorManager.getRotationMatrixFromVector(rMat, sensorEvent.values);
                 // get the azimuth value (orientation[0]) in degree
-                mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 180) % 360;
+                mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 200) % 360;
+
+                if(stickyAngles)
+                    mAzimuth = Math.round(mAzimuth /90) * 90;
 
                 if (azimuthList.size() >= NUM_ACC_READINGS) {
                     azimuthList.poll();
@@ -613,16 +632,24 @@ public class LocateMeActivity extends AppCompatActivity {
     public void onPause() {
         super.onPause();
         this.unregisterReceiver(wifiBroadcastReceiver);
-        if (activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable)
+        if (activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable) {
             ((continuousLocalizationRunnable) activeLocalizationRunnable).setRunning(false);
+            activeCountParticlesThread.setRunning(false);
+            try {
+                activeCountParticlesThread.join();
+                activeLocalizationRunnable.join();
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
         this.registerReceiver(wifiBroadcastReceiver, wifiIntentFilter);
-        if (activeLocalizationRunnable != null && activeLocalizationRunnable instanceof continuousLocalizationRunnable)
-            ((continuousLocalizationRunnable) activeLocalizationRunnable).setRunning(true);
+
     }
 
     @Override
@@ -735,7 +762,6 @@ public class LocateMeActivity extends AppCompatActivity {
         List<Float> accelerometerDataMagnitudeFFT = Utils.fourierTransform(new ArrayList<>(accelerometerDataMagnitude));
         List<Float> except0 = accelerometerDataMagnitudeFFT.subList(1, accelerometerDataMagnitudeFFT.size());
         int highestHz = Utils.argMax(except0);
-        System.out.println(highestHz + 1 + ": " + except0.get(highestHz));
 
         while (accDataIt.hasNext()) {
             int mag = (int) (5 * accDataIt.next());

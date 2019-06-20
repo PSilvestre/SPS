@@ -43,10 +43,18 @@
     <CheckBox android:id="@+id/checkbox_detailed_sensor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Detailed Sensor"
+        android:text="Graphs"
         android:onClick="onCheckboxClicked"
+        android:layout_above="@+id/checkbox_sticky_angles"
+        android:layout_marginBottom="15dp"/>
+
+    <CheckBox android:id="@+id/checkbox_sticky_angles"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="StickySensors"
+        android:onClick="onStickyCheckboxClicked"
         android:layout_above="@+id/cell_guess"
-        android:layout_marginBottom="10dp"/>
+        />
 
     <Spinner
         android:id="@+id/localization_algorithm_spin"

@@ -31,32 +31,26 @@ class AutocorrActivityRecognizer implements ActivityRecognizer {
     public SubjectActivity recognizeActivity(Queue<Float> sensorData, Queue<FloatTriplet> sensorDataRaw, DatabaseService dbconnection, AtomicInteger accReadingsSinceLastUpdate) {
 
         List<Float> sensorDataMagnitudeList = new ArrayList<>(sensorData);
-        Collections.reverse(sensorDataMagnitudeList);
 
-        List<Float> oldest = sensorDataMagnitudeList.subList(sensorDataMagnitudeList.size()/4 * 3, sensorDataMagnitudeList.size());
 
-        float mean = Utils.mean(oldest);
-        float stdDev = Utils.stdDeviation(oldest, mean);
+        float mean = Utils.mean(sensorDataMagnitudeList);
+        float stdDev = Utils.stdDeviation(sensorDataMagnitudeList, mean);
 
-        if (stdDev < 0.4) { lastState = SubjectActivity.STANDING; return SubjectActivity.STANDING;};
+        if (stdDev < 0.3) { lastState = SubjectActivity.STANDING; return SubjectActivity.STANDING;};
         if (stdDev > 3) {  return SubjectActivity.JERKY_MOTION;}
 
         if (optDelay != 0) {
-            minDelay = Math.max(optDelay - 10, MIN_DELAY);
-            maxDelay = Math.min(optDelay + 10, MAX_DELAY);
+            minDelay = Math.max(optDelay - 12, MIN_DELAY);
+            maxDelay = Math.min(optDelay + 12, MAX_DELAY);
         }
         List<Float> correlationsForEachDelay = Utils.correlation(sensorDataMagnitudeList, sensorDataMagnitudeList, minDelay, maxDelay);
-        int delayDetected = minDelay;
 
 
         int largestCorrelationIndex = Utils.argMax(correlationsForEachDelay);
         float correlation = correlationsForEachDelay.get(largestCorrelationIndex);
 
-        if (correlation > 0.7  ) {
-            if (optDelay == 0)
+        if (correlation > 0.775 ) {
                 optDelay = largestCorrelationIndex + minDelay;
-            else
-                optDelay = (int) (0.5 * optDelay + 0.5 * (largestCorrelationIndex + minDelay));
 
             lastState = SubjectActivity.WALKING;
             return SubjectActivity.WALKING;
