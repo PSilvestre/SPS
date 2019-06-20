@@ -29,7 +29,7 @@ public class FourierTransformActivityRecognizer implements ActivityRecognizer {
         float rawmean = Utils.mean(mostRecent);
         float rawstdDev = Utils.stdDeviation(mostRecent, rawmean);
 
-        if (rawstdDev < 0.5) { lastState = SubjectActivity.STANDING; return SubjectActivity.STANDING;};
+        if (rawstdDev < 0.5) { lastState = SubjectActivity.STANDING; return SubjectActivity.STANDING;}
 
         List<Float> accelerometerDataMagnitudeFFT = Utils.fourierTransform(new ArrayList<>(sensorData));
 
