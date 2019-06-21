@@ -359,8 +359,14 @@ public class LocateMeActivity extends AppCompatActivity {
             sensorManager.registerListener(accelerometerListener, accelerometer, 1000000 / ACCELEROMETER_SAMPLES_PER_SECOND);
 
             int numTimesToRepeat = 1;
+            int weightingScheme = 1;    //0 - normal consecutive scans (same as repeatedly pressing the button)
+                                        //1 - average cell probabilities
+
             if(localizationMethod instanceof ParallelBayesianLocalizationMethod)
                 numTimesToRepeat = 3;
+
+
+            List<Float> accumulatedProbabilities = new ArrayList<>();
             for(int i = 0; i<numTimesToRepeat; i++) {
                 //Start wifi scan
                 wifiManager.startScan();
@@ -372,8 +378,30 @@ public class LocateMeActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
-                cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
+
+                if (weightingScheme == 0)
+                    cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
+
+                if (weightingScheme == 1) {
+                    //This method breaks consecutive scans weight on each other. The whole point of it is that averaging is better
+                    resetCellProbabilities();
+                    cellProbabilities = localizationMethod.computeLocation(scanData, cellProbabilities, databaseService);
+                    //Sum cell probabilities
+                    if (accumulatedProbabilities.size() == 0)
+                        for (float prob : cellProbabilities) accumulatedProbabilities.add(prob);
+                    else
+                        for (i = 0; i < cellProbabilities.length; i++)
+                            accumulatedProbabilities.set(i, accumulatedProbabilities.get(i) + cellProbabilities[i]);
+                }
+
+
                 scanData = new LinkedList<>();
+            }
+
+            //Average them and make them the new cellProbabilities
+            if (weightingScheme == 1) {
+                for (int i = 0; i < cellProbabilities.length; i++)
+                    cellProbabilities[i] = accumulatedProbabilities.get(i) / numTimesToRepeat;
             }
 
             sensorManager.unregisterListener(accelerometerListener);
@@ -634,11 +662,15 @@ public class LocateMeActivity extends AppCompatActivity {
 
     //Sets all previous cell probabilities to uniform and resets the steps taken
     protected void setInitialBelief() {
+        resetCellProbabilities();
+        totalSteps = 0;
+    }
+
+    private void resetCellProbabilities() {
         int numCells = databaseService.getNumberOfCells();
         cellProbabilities = new float[numCells];
         for (int i = 0; i < numCells; i++)
             cellProbabilities[i] = 1.0f / numCells;
-        totalSteps = 0;
     }
 
     public class simpleScanBroadcastReceiver extends BroadcastReceiver {
