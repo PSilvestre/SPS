@@ -147,7 +147,7 @@ public class Utils {
             stdDev1 = Utils.stdDeviation(array1, mean1);
             stdDev2 = Utils.stdDeviation(array2, mean2);
 
-            for (int k = 0; k < delay-1; k++) {
+            for (int k = 0; k < delay; k++) {
                 sum += (array1.get(k) - mean1) * (array2.get(k) - mean2);
             }
             sum /= (delay * stdDev1 * stdDev2);

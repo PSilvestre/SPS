@@ -35,6 +35,7 @@ import android.widget.TextView;
 
 import com.example.sps.activity_recognizer.ActivityAlgorithm;
 import com.example.sps.activity_recognizer.ActivityRecognizer;
+import com.example.sps.activity_recognizer.AutocorrActivityRecognizer;
 import com.example.sps.activity_recognizer.FloatTriplet;
 import com.example.sps.activity_recognizer.FourierTransformActivityRecognizer;
 import com.example.sps.activity_recognizer.StepDetectorActivityRecognizer;
@@ -285,7 +286,7 @@ public class LocateMeActivity extends AppCompatActivity {
         });
 
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        sensorManager.registerListener(new RotationListener(), rotationSensor, 1000000 / ACCELEROMETER_SAMPLES_PER_SECOND);
+        sensorManager.registerListener(new RotationListener(), rotationSensor, 1000000 / (ACCELEROMETER_SAMPLES_PER_SECOND/4));
 
 
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -494,9 +495,12 @@ public class LocateMeActivity extends AppCompatActivity {
             List<Float> azimuths = new ArrayList<Float>(azimuthList);
             ((ContinuousLocalization) localizationMethod).updateParticles(azimuths.get((int) (azimuths.size()*5.0f/6.0f)), distance, particles); //Fourier transform is very fast, should use recent rotation
         }
-        else
+        else if (activityRecognizer instanceof AutocorrActivityRecognizer) {
             ((ContinuousLocalization) localizationMethod).updateParticles(azimuthList.peek(), distance, particles);
-
+        } else {
+            List<Float> azimuths = new ArrayList<Float>(azimuthList);
+            ((ContinuousLocalization) localizationMethod).updateParticles(azimuths.get((int) (azimuths.size()*1.0f/2.0f)), distance, particles); //Fourier transform is very fast, should use recent rotation
+        }
 
         ((ContinuousLocalization) localizationMethod).collideAndResample(particles, walls);
 
@@ -538,12 +542,12 @@ public class LocateMeActivity extends AppCompatActivity {
             if (sensorEvent.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
                 // calculate th rotation matrix
                 SensorManager.getRotationMatrixFromVector(rMat, sensorEvent.values);
-                mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 200) % 360;
+                mAzimuth = (float) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 190) % 360;
 
                 if(stickyAngles)
                     mAzimuth = Math.round(mAzimuth /90) * 90;
 
-                if (azimuthList.size() >= NUM_ACC_READINGS) {
+                if (azimuthList.size() >= NUM_ACC_READINGS/4) {
                     azimuthList.poll();
                 }
 

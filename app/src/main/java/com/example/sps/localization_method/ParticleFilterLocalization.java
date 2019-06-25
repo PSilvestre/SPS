@@ -81,7 +81,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
         EnumeratedDistribution cellProbability = new EnumeratedDistribution(itemWeights);
 
         for (int i = 0; i < NUM_PARTICLES; i++) {
-            particles.add(sampleParticle(cellProbability, r, 1));
+            particles.add(sampleParticle(cellProbability, r, 1.0f/NUM_PARTICLES));
 
         }
         return particles;
@@ -94,7 +94,7 @@ public class ParticleFilterLocalization implements ContinuousLocalization {
             return;
 
 
-        noiseDistance = new UniformRealDistribution(-0.2, 0.2); //TODO: find good STD_DEV
+        noiseDistance = new UniformRealDistribution(-0.25, 0.25); //TODO: find good STD_DEV
 
         float norm;
         float angle;
